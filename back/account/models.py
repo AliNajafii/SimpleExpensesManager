@@ -64,22 +64,101 @@ class Transaction(models.Model):
     on_delete=models.CASCADE
     )
     tag = models.ManyToManyField(
-    'Tag'
+    'Tag',
+    null=True
+    )
+    category = models.ForeignKey(
+    'Category',
+    on_delete=models.CASCADE,
+    null=True
     )
 
+    def __str__(self):
+        if self.is_expense:
+            return f"-{self.amount} from {self.account.name}"
 
+        return f"+{self.amount} from {self.account.name}"
+
+
+    def tag_number(self):
+        return self.tag_set.all().count()
+
+    def get_user(self,obj=True):
+        """
+        this method return username,email,first,last
+        of a transaction.
+        if obj True user instance will be return else
+        dictionary of info.
+        """
+        user = self.account.user
+        if obj:
+            return user
+
+        info = {}
+        info.update({
+        'username' : user.username,
+        'email': user.email,
+        'full_name': user.get_full_name()
+                })
 
 class Category(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     name = models.CharField(max_length=100)
-    transaction = models.ForeignKey(
-    'Transaction',
-    on_delete = models.CASCADE
-    )
+    def __str__(self):
+        return f"{self.name}"
+
+    def get_transactions_num(self):
+        return self.transaction_set.all().count()
+
+    def get_expense_transactions(self):
+        return self.transaction_set.filter(is_expense =True)
+
+    def get_income_transactions(self):
+        return self.transaction_set.filter(is_expense=False)
+
+    def get_balance_of_transactions(self):
+        """
+        this method get the balance amount,
+         of income and expense of a specific category.
+        """
+
+        incs = models.Sum('amount',filter=models.Q(is_expense=False))
+        exps = models.Sum('amoutn',filter=models.Q(is_expense=True))
+
+        balance = self.transaction_set.aggregate(balance= incs - exps)
+
+        return balance
+
+
 
 class Tag(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     name = models.CharField(max_length=1000)
+    def __str__(self):
+        return f"{self.name}"
+
+    def get_transaction_number(self):
+        return self.transaction_set.aggregate(num=models.count('transaction_set'))
+
+    def get_expense_transaction(self):
+
+        return self.transaction_set.filter(is_expense=True)
+
+    def get_income_transaction(self):
+
+        return self.transaction_set.filter(is_expense=False)
+
+    def get_transaction_balance(self):
+
+        incs = models.Sum('amount',filter=models.Q(is_expens=False))
+        exps = models.Sum('amount',filter=models.Q(is_expens=True))
+
+        balance = self.transaction_set.aggregate(
+        balance = incs - exps
+        )
+
+        return balance
+
 
 class TransactionNotValid(Exception):
     def __init__(self,*args):
