@@ -94,22 +94,22 @@ class GeneralTest(TestCase):
         note='note2',
         is_expense=False
         )
-
+        # testing account satatics
         self.assertEqual(ac1.total,1000)
         self.assertEqual(ac1.balance,0)
-
+        #test t1 transaction statics
         self.assertEqual(t1.amount,100)
         self.assertTrue(t1.is_expense,True)
-
         self.assertIsNone(t1.category)
         self.assertEqual(t1.__str__(),'-100 from acc2')
 
         self.assertEqual(t2.__str__(),'+200 from acc2')
-
+        #testing account statics after transaction save method
+        # -100 transaction added
         t1.save()
         self.assertEqual(ac1.total,900)
         self.assertIn(t1,ac1.transaction_set.all())
-
+        # +200 transaction added
         t2.save()
         self.assertEqual(ac1.total,1100)
         self.assertIn(t1,ac1.transaction_set.all())
@@ -120,20 +120,25 @@ class GeneralTest(TestCase):
         self.assertEqual(acc1.total,1000)
         self.assertEqual(acc1.balance,0)
         #after transactions
+        # -100 expense added
         expss = self.create_trans(1,acc1,100)
+        #2 * +200 transaction added
         incs = self.create_trans(2,acc1,200,False)
 
 
         self.assertEqual(acc1.total,1300)
 
+        #check for expense transaction quantitiy
         self.assertEqual(
         acc1.transaction_set.filter(is_expense=True).count(),
         len(expss)
         )
+        #check for income transaction quantity
         self.assertEqual(
         acc1.transaction_set.filter(is_expense=False).count(),
         len(incs)
         )
-
+        
+        #check balance
         acc1.update_balance()
         self.assertEqual(acc1.balance,300)
