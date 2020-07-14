@@ -31,23 +31,27 @@ class Account(models.Model):
             raise TransactionNotValid()
 
     def update_balance(self):
-        expenses = models.Sum(
-        'amount',
-        filter=models.Q(is_expense=True)
-        )
+        incs = 0
+        exps = 0
+        if self.get_income_transactions().exists():
+            incs = models.Sum('amount',filter=models.Q(is_expense=False))
+        if self.get_expense_transactions().exists():
+            exps = models.Sum('amount',filter=models.Q(is_expense=True))
+        balance= self.transaction_set.aggregate(balance= incs - exps)
 
-        incomes = models.Sum(
-        'amount',
-        filter = models.Q(is_expense = False)
-        )
-
-        balance = self.transaction_set.aggregate(
-        value = incomes - expenses
-        )
-
-        self.balance = balance.get('value')
+        self.balance = balance.get('balance')
         self.save()
-        
+
+    def get_transactions_num(self):
+        return self.transaction_set.all().count()
+
+    def get_expense_transactions(self):
+        return self.transaction_set.filter(is_expense =True)
+
+    def get_income_transactions(self):
+        return self.transaction_set.filter(is_expense=False)
+
+
 
 
 class Transaction(models.Model):
@@ -102,8 +106,9 @@ class Transaction(models.Model):
         'full_name': user.get_full_name()
                 })
 
-    def save(self,*args,**kwargs):
-        self.account.add_transaction(self)
+    def save(self,operate_on=False,*args,**kwargs):
+        if operate_on or kwargs.get('operate_on'):
+            self.account.add_transaction(self)
         super().save(*args,**kwargs)
 
 class Category(models.Model):
@@ -126,11 +131,13 @@ class Category(models.Model):
         this method get the balance amount,
          of income and expense of a specific category.
         """
-
-        incs = models.Sum('amount',filter=models.Q(is_expense=False))
-        exps = models.Sum('amoutn',filter=models.Q(is_expense=True))
-
-        balance = self.transaction_set.aggregate(balance= incs - exps)
+        incs = 0
+        exps = 0
+        if self.get_income_transactions().exists():
+            incs = models.Sum('amount',filter=models.Q(is_expense=False))
+        if self.get_expense_transactions().exists():
+            exps = models.Sum('amount',filter=models.Q(is_expense=True))
+        balance= self.transaction_set.aggregate(balance= incs - exps)
 
         return balance
 
