@@ -1,5 +1,8 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+
 USER = get_user_model()
 
 class Account(models.Model):
@@ -53,6 +56,95 @@ class Account(models.Model):
     def get_income_transactions(self):
         return self.transaction_set.filter(is_expense=False)
 
+
+    def last_month_income_avg(self):
+        """
+            this method return the average of,
+            last month income transactions.
+        """
+        d1 = timezone.now()
+        d2 = d1 - relativedelta(monthes=1)
+        avg_income = models.Avg(
+        'amount',
+        filter= models.Q(date__range=(d2,d1),is_expense=False)
+        )
+        avg = self.transaction_set.aggregate(avg = avg_income)
+
+        return avg
+
+
+    def last_time_income_avg(self,number_of_duration,*args,**kwargs):
+        """
+        this method return the average of last,
+        month,week and/or hour income transactions.
+        note : one of those three time parameters could be True.
+
+        """
+        number = number_of_duration or \
+        kwargs.get(number_of_duration)
+
+        d1 = timezone.now()
+        d2 = None
+        if kwargs.get('month'):
+            d2 = d1 - relativedelta(months=number)
+        elif kwargs.get('week'):
+            d2 = d1 - relativedelta(weeks = number)
+        elif kwargs.get('hours') :
+            d2 = d1 - relativedelta(hours=number)
+
+        avg_income = models.Avg(
+        'amount',
+        filter= models.Q(date__range=(d2,d1),is_expense=False)
+        )
+
+        avg = self.transaction_set.aggregate(avg = avg_income)
+
+        return avg
+
+
+    def last_month_expense_avg(self):
+            """
+                this method return the average of,
+                last month income transactions.
+            """
+            d1 = timezone.now()
+            d2 = d1 - relativedelta(monthes=1)
+            avg_income = models.Avg(
+            'amount',
+            filter= models.Q(date__range=(d2,d1),is_expense=True)
+            )
+            avg = self.transaction_set.aggregate(avg = avg_income)
+
+            return avg
+
+
+    def last_time_income_avg(self,number_of_duration,*args,**kwargs):
+            """
+            this method return the average of last,
+            month,week and/or hour income transactions.
+            note : one of those three time parameters could be True.
+
+            """
+            number = number_of_duration or \
+            kwargs.get(number_of_duration)
+
+            d1 = timezone.now()
+            d2 = None
+            if kwargs.get('month'):
+                d2 = d1 - relativedelta(months=number)
+            elif kwargs.get('week'):
+                d2 = d1 - relativedelta(weeks = number)
+            elif kwargs.get('hours') :
+                d2 = d1 - relativedelta(hours=number)
+
+            avg_income = models.Avg(
+            'amount',
+            filter= models.Q(date__range=(d2,d1),is_expense=True)
+            )
+
+            avg = self.transaction_set.aggregate(avg = avg_income)
+
+            return avg
 
 
 
@@ -112,6 +204,8 @@ class Transaction(models.Model):
         if operate_on or kwargs.get('operate_on'):
             self.account.add_transaction(self)
         super().save(*args,**kwargs)
+
+
 
 class Category(models.Model):
     date = models.DateTimeField(auto_now_add=True)
