@@ -30,16 +30,15 @@ class ModelsTest(TestCase):
             lst.append(obj)
         return lst
 
-    def create_trans(self,num,account=None,amount=100,is_expense=True,tag=0,cat=0):
+    def create_trans(self,num,account=None,amount=100,is_expense=True,tag=0,cat=0,operate_on=True):
         lst=[]
-        if not account:
-            account = self.acc1
         for i in range(num):
-            obj = models.Transaction.objects.create(
+            obj = models.Transaction(
             account = account,
             amount = amount,
             note=f'note{i}',
-            is_expense=is_expense
+            is_expense=is_expense,
+
             )
 
             if tag:
@@ -49,6 +48,8 @@ class ModelsTest(TestCase):
                 if cat >=1:
                     category = self.create_cat(1)[0]
                     obj.category = category
+
+            obj.save(operate_on=operate_on)
             lst.append(obj)
         return  lst
 
@@ -106,11 +107,11 @@ class ModelsTest(TestCase):
         self.assertEqual(t2.__str__(),'+200 from acc2')
         #testing account statics after transaction save method
         # -100 transaction added
-        t1.save()
+        t1.save(operate_on=True)
         self.assertEqual(ac1.total,900)
         self.assertIn(t1,ac1.transaction_set.all())
         # +200 transaction added
-        t2.save()
+        t2.save(operate_on=True)
         self.assertEqual(ac1.total,1100)
         self.assertIn(t1,ac1.transaction_set.all())
 
@@ -122,6 +123,8 @@ class ModelsTest(TestCase):
         #after transactions
         # -100 expense added
         expss = self.create_trans(1,acc1,100)
+        acc1.update_balance()
+        self.assertEqual(acc1.balance,-100)
         #2 * +200 transaction added
         incs = self.create_trans(2,acc1,200,False)
 
@@ -142,3 +145,39 @@ class ModelsTest(TestCase):
         #check balance
         acc1.update_balance()
         self.assertEqual(acc1.balance,300)
+
+    def test_category(self):
+        cat1 = self.create_cat(1)[0]
+        acc1 = self.create_account(1)[0]
+        exp_transe = []
+        exp_transe += self.create_trans(3,acc1)
+        inc_transe = []
+        inc_transe += self.create_trans(2,acc1,is_expense=False)
+
+        # #add expense transaction only
+        for t in exp_transe:
+            t.category = cat1
+            t.save()
+
+        self.assertEqual(cat1.transaction_set.count(),3)
+        self.assertEqual(cat1.get_transactions_num(),3)
+        self.assertEqual(
+        cat1.get_balance_of_transactions(),
+        {'balance':-300}
+        )
+
+        #add income transactions too
+        for t in inc_transe:
+            t.category = cat1
+            t.save()
+
+        self.assertEqual(cat1.transaction_set.count(),5)
+        self.assertEqual(cat1.get_transactions_num(),5)
+        self.assertEqual(cat1.transaction_set.filter(is_expense=False).count(),2)
+        self.assertEqual(
+        cat1.get_balance_of_transactions(),
+        {'balance':-100}
+        )
+
+        test_t = models.Transaction.objects.get(id='3')
+        self.assertIn(test_t,cat1.transaction_set.all())
