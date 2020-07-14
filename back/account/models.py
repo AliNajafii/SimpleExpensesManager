@@ -13,7 +13,7 @@ class Account(models.Model):
     )
 
     def __str__(self):
-        return f'Account({self.balance})'
+        return f'Account({self.total})'
 
     def add_transaction(self,trans_obj):
         """
@@ -47,6 +47,7 @@ class Account(models.Model):
 
         self.balance = balance.get('value')
         self.save()
+        
 
 
 class Transaction(models.Model):
@@ -100,6 +101,10 @@ class Transaction(models.Model):
         'email': user.email,
         'full_name': user.get_full_name()
                 })
+
+    def save(self,*args,**kwargs):
+        self.account.add_transaction(self)
+        super().save(*args,**kwargs)
 
 class Category(models.Model):
     date = models.DateTimeField(auto_now_add=True)
