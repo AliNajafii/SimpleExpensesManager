@@ -21,12 +21,15 @@ class ModelsTest(TestCase):
             lst.append(obj)
         return lst
 
-    def create_tag(self,num,transactions=0):
+    def create_tag(self,num,transactions=None):
         lst=[]
         for i in range(num):
             obj = models.Tag.objects.create(
             name=f'tag{1}'
             )
+            if transactions:
+                obj.transaction_set.add(*transactions)
+            obj.save()
             lst.append(obj)
         return lst
 
@@ -179,5 +182,37 @@ class ModelsTest(TestCase):
         {'balance':-100}
         )
 
+
         test_t = models.Transaction.objects.get(id='3')
         self.assertIn(test_t,cat1.transaction_set.all())
+
+    def test_tag(self):
+        acc = self.create_account(1)[0]
+        transactions= []
+        incs = self.create_trans(4,acc,is_expense=False)
+        exp = self.create_trans(2,acc)
+        transactions += incs
+        # insert income transactions first
+        tag = self.create_tag(1,transactions)[0]
+
+        self.assertEqual(
+        tag.get_transaction_balance(),{'balance':400}
+        )
+
+        self.assertEqual(tag.get_transactions_num(),4)
+
+        #adding expense too
+        tag.transaction_set.add(*exp)
+        tag.save()
+
+        self.assertEqual(tag.get_transactions_num(),6)
+
+        self.assertEqual(
+        tag.get_transaction_balance(),
+        {'balance':200}
+        )
+
+        self.assertTrue(
+        tag.get_income_transactions().count()==4 and \
+        tag.get_expense_transactions().count()==2
+        )
