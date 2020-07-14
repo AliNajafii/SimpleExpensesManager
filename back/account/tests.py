@@ -2,7 +2,7 @@ from django.test import TestCase
 from . import models
 from django.contrib.auth.models import User
 from django.db.models import Sum,Q
-class GeneralTest(TestCase):
+class ModelsTest(TestCase):
 
     def setUp(self):
         self.u1 = User.objects.create(
@@ -138,7 +138,7 @@ class GeneralTest(TestCase):
         acc1.transaction_set.filter(is_expense=False).count(),
         len(incs)
         )
-        
+
         #check balance
         acc1.update_balance()
         self.assertEqual(acc1.balance,300)
