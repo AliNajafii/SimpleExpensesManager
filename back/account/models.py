@@ -26,11 +26,12 @@ class Account(models.Model):
                 self.total -= trans_obj.amount
             else:
                 self.total += trans_obj.amount
+            self.update_balance(save=False)
             self.save()
         else:
             raise TransactionNotValid()
 
-    def update_balance(self):
+    def update_balance(self,save=True):
         incs = 0
         exps = 0
         if self.get_income_transactions().exists():
@@ -40,7 +41,8 @@ class Account(models.Model):
         balance= self.transaction_set.aggregate(balance= incs - exps)
 
         self.balance = balance.get('balance')
-        self.save()
+        if save:
+            self.save()
 
     def get_transactions_num(self):
         return self.transaction_set.all().count()
@@ -149,25 +151,26 @@ class Tag(models.Model):
     def __str__(self):
         return f"{self.name}"
 
-    def get_transaction_number(self):
-        return self.transaction_set.aggregate(num=models.count('transaction_set'))
+    def get_transactions_num(self):
+        return self.transaction_set.count()
 
-    def get_expense_transaction(self):
+    def get_expense_transactions(self):
 
         return self.transaction_set.filter(is_expense=True)
 
-    def get_income_transaction(self):
+    def get_income_transactions(self):
 
         return self.transaction_set.filter(is_expense=False)
 
     def get_transaction_balance(self):
 
-        incs = models.Sum('amount',filter=models.Q(is_expens=False))
-        exps = models.Sum('amount',filter=models.Q(is_expens=True))
-
-        balance = self.transaction_set.aggregate(
-        balance = incs - exps
-        )
+        incs = 0
+        exps = 0
+        if self.get_income_transactions().exists():
+            incs = models.Sum('amount',filter=models.Q(is_expense=False))
+        if self.get_expense_transactions().exists():
+            exps = models.Sum('amount',filter=models.Q(is_expense=True))
+        balance= self.transaction_set.aggregate(balance= incs - exps)
 
         return balance
 
