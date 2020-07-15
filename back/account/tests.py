@@ -2,6 +2,8 @@ from django.test import TestCase
 from . import models
 from django.contrib.auth.models import User
 from django.db.models import Sum,Q
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
 class ModelsTest(TestCase):
 
     def setUp(self):
@@ -118,6 +120,22 @@ class ModelsTest(TestCase):
         self.assertEqual(ac1.total,1100)
         self.assertIn(t1,ac1.transaction_set.all())
 
+        #testing transaction user
+        self.assertEqual(
+        ac1.user , t1.get_user()
+        )
+        self.assertEqual(
+        t1.get_user() , self.u1
+        )
+        self.assertEqual(
+        t1.get_user(obj=False),
+        {
+            'username':'alal',
+            'email':'ali@najafi.com',
+            'full_name':'Ali Najafi',
+        }
+        )
+
     def test_account(self):
         #before transactions
         acc1 = self.create_account(1)[0]
@@ -215,4 +233,48 @@ class ModelsTest(TestCase):
         self.assertTrue(
         tag.get_income_transactions().count()==4 and \
         tag.get_expense_transactions().count()==2
+        )
+
+    def test_duration_functions_account(self):
+
+        acc = self.create_account(1)[0]
+        inc_trans = self.create_trans(3,acc)
+        exp_trans = self.create_trans(4,acc,is_expense=False)
+
+        inc_trans[0].date = timezone.now() - relativedelta(days=12)
+        inc_trans[0].save()
+        inc_trans[1].date = timezone.now() - relativedelta(days=3)
+        inc_trans[1].save()
+        inc_trans[2].date = timezone.now() - relativedelta(days=20)
+        inc_trans[2].save()
+
+        exp_trans[0].date = timezone.now() - relativedelta(days=7)
+        exp_trans[0].save()
+        exp_trans[1].date = timezone.now() - relativedelta(days=1)
+        exp_trans[1].save()
+        exp_trans[2].date = timezone.now() - relativedelta(days=18)
+        exp_trans[2].save()
+        exp_trans[3].date = timezone.now() - relativedelta(days=22)
+        exp_trans[3].save()
+
+        self.assertEqual(acc.last_month_income_avg(),{'inc_avg':100})
+        self.assertEqual(acc.last_month_expense_avg(),{'exp_avg':100})
+
+        self.assertEqual(
+        acc.last_time_income_avg(10,days=True)
+        ,{'inc_avg':100})
+
+        self.assertEqual(
+        acc.last_time_expense_avg(10,days=True),
+        {'exp_avg':100}
+        )
+
+        self.assertEqual(
+        acc.last_time_income_avg(1,months=True),
+        acc.last_month_income_avg()
+        )
+
+        self.assertEqual(
+        acc.last_time_expense_avg(1,months=True),
+        acc.last_month_expense_avg()
         )

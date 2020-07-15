@@ -41,6 +41,8 @@ class Account(models.Model):
             incs = models.Sum('amount',filter=models.Q(is_expense=False))
         if self.get_expense_transactions().exists():
             exps = models.Sum('amount',filter=models.Q(is_expense=True))
+        else :
+            return None
         balance= self.transaction_set.aggregate(balance= incs - exps)
 
         self.balance = balance.get('balance')
@@ -63,12 +65,12 @@ class Account(models.Model):
             last month income transactions.
         """
         d1 = timezone.now()
-        d2 = d1 - relativedelta(monthes=1)
+        d2 = d1 - relativedelta(months=1)
         avg_income = models.Avg(
         'amount',
         filter= models.Q(date__range=(d2,d1),is_expense=False)
         )
-        avg = self.transaction_set.aggregate(avg = avg_income)
+        avg = self.transaction_set.aggregate(inc_avg = avg_income)
 
         return avg
 
@@ -81,23 +83,23 @@ class Account(models.Model):
 
         """
         number = number_of_duration or \
-        kwargs.get(number_of_duration)
+        kwargs.get('number_of_duration')
 
         d1 = timezone.now()
         d2 = None
-        if kwargs.get('month'):
+        if kwargs.get('months'):
             d2 = d1 - relativedelta(months=number)
-        elif kwargs.get('week'):
+        elif kwargs.get('weeks'):
             d2 = d1 - relativedelta(weeks = number)
-        elif kwargs.get('hours') :
-            d2 = d1 - relativedelta(hours=number)
+        elif kwargs.get('days') :
+            d2 = d1 - relativedelta(days=number)
 
         avg_income = models.Avg(
         'amount',
         filter= models.Q(date__range=(d2,d1),is_expense=False)
         )
 
-        avg = self.transaction_set.aggregate(avg = avg_income)
+        avg = self.transaction_set.aggregate(inc_avg = avg_income)
 
         return avg
 
@@ -108,17 +110,17 @@ class Account(models.Model):
                 last month income transactions.
             """
             d1 = timezone.now()
-            d2 = d1 - relativedelta(monthes=1)
+            d2 = d1 - relativedelta(months=1)
             avg_income = models.Avg(
             'amount',
             filter= models.Q(date__range=(d2,d1),is_expense=True)
             )
-            avg = self.transaction_set.aggregate(avg = avg_income)
+            avg = self.transaction_set.aggregate(exp_avg = avg_income)
 
             return avg
 
 
-    def last_time_income_avg(self,number_of_duration,*args,**kwargs):
+    def last_time_expense_avg(self,number_of_duration,*args,**kwargs):
             """
             this method return the average of last,
             month,week and/or hour income transactions.
@@ -126,23 +128,23 @@ class Account(models.Model):
 
             """
             number = number_of_duration or \
-            kwargs.get(number_of_duration)
+            kwargs.get('number_of_duration')
 
             d1 = timezone.now()
             d2 = None
-            if kwargs.get('month'):
+            if kwargs.get('months'):
                 d2 = d1 - relativedelta(months=number)
-            elif kwargs.get('week'):
+            elif kwargs.get('weeks'):
                 d2 = d1 - relativedelta(weeks = number)
-            elif kwargs.get('hours') :
-                d2 = d1 - relativedelta(hours=number)
+            elif kwargs.get('days') :
+                d2 = d1 - relativedelta(days=number)
 
             avg_income = models.Avg(
             'amount',
             filter= models.Q(date__range=(d2,d1),is_expense=True)
             )
 
-            avg = self.transaction_set.aggregate(avg = avg_income)
+            avg = self.transaction_set.aggregate(exp_avg = avg_income)
 
             return avg
 
@@ -200,6 +202,8 @@ class Transaction(models.Model):
         'full_name': user.get_full_name()
                 })
 
+        return info
+
     def save(self,operate_on=False,*args,**kwargs):
         if operate_on or kwargs.get('operate_on'):
             self.account.add_transaction(self)
@@ -236,6 +240,81 @@ class Category(models.Model):
         balance= self.transaction_set.aggregate(balance= incs - exps)
 
         return balance
+    def inc_avg(self,**duration):
+        """
+        this method is for calculating the average of
+        income in this category.
+        **duration kwargs are : {'month':duration},
+        {'week':duration},{'day':duration}
+        note = if **duration is None {'month':1} will be
+        calculated. and one of them should be choosen .
+        """
+        duraton_info = {}
+        now = timezone.now()
+        past = None
+        if duration:
+            if duration.keys()[0] == 'month':
+
+                past = now - relativedelta(months=duration.get('month'))
+
+            elif duration.keys()[0] == 'week':
+                past = now - relativedelta(weeks=duration.get('week'))
+
+            elif duration.keys()[0] == 'day':
+                past = now - relativedelta(days=duration.get('day'))
+            else : # if **duration was not None but wrong kwargs had given
+                past = now - relativedelta(months=1)
+        else : # id **duration was None
+            past = now - relativedelta(months=1)
+
+
+        avg = models.Avg(
+        'amount',
+        filter= models.Q(date__range=(now-past,now),is_expense=False)
+
+        )
+
+        return self.transaction_set.aggregate(inc_avg = avg)
+
+
+    def avg_expense(self,**duration):
+
+        """
+        this method is for calculating the average of
+        income in this category.
+        **duration kwargs are : {'month':duration},
+        {'week':duration},{'day':duration}
+        note = if **duration is None {'month':1} will be
+        calculated. and one of them should be choosen .
+        """
+        duraton_info = {}
+        now = timezone.now()
+        past = None
+        if duration:
+            if duration.keys()[0] == 'month':
+
+                past = now - relativedelta(months=duration.get('month'))
+
+            elif duration.keys()[0] == 'week':
+                past = now - relativedelta(weeks=duration.get('week'))
+
+            elif duration.keys()[0] == 'day':
+                past = now - relativedelta(days=duration.get('day'))
+            else : # if **duration was not None but wrong kwargs had given
+                past = now - relativedelta(months=1)
+        else : # id **duration was None
+            past = now - relativedelta(months=1)
+
+
+        avg = models.Avg(
+        'amount',
+        filter= models.Q(date__range=(now-past,now),is_expense=True)
+
+        )
+
+        return self.transaction_set.aggregate(exp_avg = avg)
+
+
 
 
 
