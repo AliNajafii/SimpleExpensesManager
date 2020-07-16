@@ -214,6 +214,10 @@ class Transaction(models.Model):
 class Category(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     name = models.CharField(max_length=100)
+    user = models.ForeignKey(
+    USER,
+    on_delete=models.CASCADE
+    )
     def __str__(self):
         return f"{self.name}"
 
@@ -321,6 +325,10 @@ class Category(models.Model):
 class Tag(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     name = models.CharField(max_length=1000)
+    user = models.ForeignKey(
+    USER,
+    on_delete=models.CASCADE
+    )
     def __str__(self):
         return f"{self.name}"
 
