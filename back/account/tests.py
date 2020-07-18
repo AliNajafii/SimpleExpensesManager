@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.db.models import Sum,Q
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
+
 class ModelsTest(TestCase):
 
     def setUp(self):
@@ -14,20 +15,25 @@ class ModelsTest(TestCase):
         last_name = 'Najafi'
         )
 
-    def create_cat(self,num):
+    def create_cat(self,num,user,transactions=None):
         lst =[]
         for i in range(num):
             obj = models.Category.objects.create(
-            name = f'cat{i}'
+            name = f'cat{i}',
+            user=user
             )
+
             lst.append(obj)
+        if transactions:
+            obj.transaction_set.add(*transactions)
         return lst
 
-    def create_tag(self,num,transactions=None):
+    def create_tag(self,num,user,transactions=None):
         lst=[]
         for i in range(num):
             obj = models.Tag.objects.create(
-            name=f'tag{1}'
+            name=f'tag{1}',
+            user=user
             )
             if transactions:
                 obj.transaction_set.add(*transactions)
@@ -51,7 +57,7 @@ class ModelsTest(TestCase):
                 obj.tag.add(*instances)
             if cat:
                 if cat >=1:
-                    category = self.create_cat(1)[0]
+                    category = self.create_cat(1,user=self.u1)[0]
                     obj.category = category
 
             obj.save(operate_on=operate_on)
@@ -168,7 +174,7 @@ class ModelsTest(TestCase):
         self.assertEqual(acc1.balance,300)
 
     def test_category(self):
-        cat1 = self.create_cat(1)[0]
+        cat1 = self.create_cat(1,user=self.u1)[0]
         acc1 = self.create_account(1)[0]
         exp_transe = []
         exp_transe += self.create_trans(3,acc1)
@@ -211,7 +217,7 @@ class ModelsTest(TestCase):
         exp = self.create_trans(2,acc)
         transactions += incs
         # insert income transactions first
-        tag = self.create_tag(1,transactions)[0]
+        tag = self.create_tag(1,self.u1,transactions)[0]
 
         self.assertEqual(
         tag.get_transaction_balance(),{'balance':400}
