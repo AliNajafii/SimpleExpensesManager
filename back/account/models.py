@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
+from django.shortcuts import reverse
 
 USER = get_user_model()
 
@@ -14,6 +15,14 @@ class Account(models.Model):
     USER,
     on_delete=models.CASCADE
     )
+
+    def get_absolute_url(self):
+        return reverse(
+        'account_profile',
+        kwargs={
+        'username':self.user.username,
+        'account_name':self.name
+        })
 
     def __str__(self):
         return f'Account({self.total})'
@@ -174,6 +183,15 @@ class Transaction(models.Model):
     null=True
     )
 
+    def get_absolute_url(self):
+        return reverse(
+        'transaction_detail',
+        kwargs={
+        'username':self.account.user.username,
+        'account_name':self.account.name,
+        }
+        )
+
     def __str__(self):
         if self.is_expense:
             return f"-{self.amount} from {self.account.name}"
@@ -216,8 +234,15 @@ class Category(models.Model):
     name = models.CharField(max_length=100)
     user = models.ForeignKey(
     USER,
-    on_delete=models.CASCADE
+    on_delete=models.CASCADE,
+    default = None,
+    null=True
     )
+    def get_absolute_url(self):
+        return reverse(
+        'category_detail',
+
+        )
     def __str__(self):
         return f"{self.name}"
 
@@ -319,15 +344,14 @@ class Category(models.Model):
         return self.transaction_set.aggregate(exp_avg = avg)
 
 
-
-
-
 class Tag(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     name = models.CharField(max_length=1000)
     user = models.ForeignKey(
     USER,
-    on_delete=models.CASCADE
+    on_delete=models.CASCADE,
+    default = None,
+    null=True
     )
     def __str__(self):
         return f"{self.name}"
