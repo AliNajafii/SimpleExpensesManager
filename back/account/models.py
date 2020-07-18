@@ -3,7 +3,8 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from django.shortcuts import reverse
-
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 USER = get_user_model()
 
 class Account(models.Model):
@@ -36,6 +37,9 @@ class Account(models.Model):
         if trans_obj.account == self:
             if trans_obj.is_expense :
                 self.total -= trans_obj.amount
+                if self.total < 0 :
+                    raise ValidationError(message=_('The cost amount is bigger than the total account cash. '))
+
             else:
                 self.total += trans_obj.amount
             self.update_balance(save=False)
