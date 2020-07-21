@@ -21,7 +21,6 @@ class Account(models.Model):
         return reverse(
         'account_profile',
         kwargs={
-        'username':self.user.username,
         'account_name':self.name
         })
 
@@ -191,7 +190,6 @@ class Transaction(models.Model):
         return reverse(
         'transaction_detail',
         kwargs={
-        'username':self.account.user.username,
         'account_name':self.account.name,
         }
         )
@@ -244,8 +242,10 @@ class Category(models.Model):
     )
     def get_absolute_url(self):
         return reverse(
-        'category_detail',
-
+        'cat-detail',
+        kwargs={
+        'cat_name':self.name
+        }
         )
     def __str__(self):
         return f"{self.name}"
@@ -359,6 +359,14 @@ class Tag(models.Model):
     )
     def __str__(self):
         return f"{self.name}"
+
+    def get_absolute_url(self):
+        return reverse(
+        'tag-detail',
+        kwargs={
+        'tag_name':self.name
+        }
+        )
 
     def get_transactions_num(self):
         return self.transaction_set.count()
