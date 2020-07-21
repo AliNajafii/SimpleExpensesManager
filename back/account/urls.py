@@ -2,41 +2,44 @@ from django.urls import path,include
 from . import account_views
 urlpatterns = [
 
-    path('<str:username>/<str:account_name>',
+    path('<str:account_name>/',
     account_views.AccountProfileView.as_view(),
-    name='account_profile'
+    name='account-profile'
      ),
 
-    path('<str:username>/<str:account_name>/update',
+     path('q',
+     account_views.queryparams.as_view(),
+
+      ),
+
+    path('<str:account_name>/update',
     account_views.AccountUpdateView.as_view(),
-    name='account_update'
+    name='account-update'
     ),
 
-    path('<str:username>/account/lists',
-    account_views.AccountListView.as_view(),
-    name='account_lists'
+    path('list',
+    account_views.UserAccountListView.as_view(),
+    name='account-list'
     ),
 
-    path('<str:username>/<str:account_name>/transactions',
-    account_views.AccountListView.as_view(),
-    name='transaction_list'
+    path('create',
+    account_views.AccountCreateView.as_view(),
+    name='account-create'
     ),
 
-    # path('<str:username>/<str:account_name>/tag',
-    # include('account.tag_urls')
-    # ),
-    #
-    # path('<str:username>/<str:account_name>/<str:cat_name>',
-    # include('account.cat_urls'),
-    # name='category_detail'
+    path('<str:account_name>/transactions',
+    account_views.TransactionListView.as_view(),
+    name='transaction-list'
+    ),
 
-    # ),
+    path('tag/',
+    include('account.tag_urls')
+    ),
 
-    # path('<str:username>/<str:account_name>/categorys',
-    # include('account.cat_urls'),
-    # name='category_list'
-    #
-    # ),
+    path('category/',
+    include('account.cat_urls'),
+    ),
+
 
 
 ]
