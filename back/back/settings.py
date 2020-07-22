@@ -38,8 +38,10 @@ REST_FRAMEWORK = {
 
 #jwt settings
 from datetime import timedelta
-JWT_VERIFY_EXPIRATION = False
-# JWT_EXPIRATION_DELTA = timedelta(seconds=60*60)
+JWT_AUTH = {
+    'JWT_EXPIRATION_DELTA' : timedelta(seconds=60*60*24)
+}
+
 
 
 
@@ -55,7 +57,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'account',
     'rest_framework_jwt',
-
+    'athentication',
 ]
 
 MIDDLEWARE = [
