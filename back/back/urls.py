@@ -19,8 +19,7 @@ from rest_framework_jwt import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('login',views.obtain_jwt_token),
-    path('refresh-token',views.refresh_jwt_token),
+    path('auth/',include('athentication.urls')),
     path('account/',include('account.urls') ),
 
 
