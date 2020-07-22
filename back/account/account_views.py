@@ -23,7 +23,7 @@ class AccountCreateView(generics.CreateAPIView):
     def post(self,request,*args,**kwargs):
 
         seri = serialization.AccountSerializer(data=request.data,
-        context={'user':request.user})
+        context={'user':request.user,'request':request})
         if seri.is_valid():
             seri.save()
             account = seri.instance
@@ -61,13 +61,7 @@ class AccountProfileView(APIView):
         if not request.method == 'GET':
             raise MethodNotAllowed(method=request.method)
 
-class queryparams(APIView):
-    def get(self,request,*args,**kwargs):
-        return Response(
-        {
-        'params': request.query_params
-        }
-        )
+
 class UserAccountListView(generics.ListAPIView):
 
     authentication_classes = (JSONWebTokenAuthentication,)
@@ -104,7 +98,37 @@ class UserAccountListView(generics.ListAPIView):
         return seri
 
 class AccountUpdateView(generics.UpdateAPIView):
-    pass
+    serializer_class = serialization.AccountSerializer
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JSONWebTokenAuthentication,)
+
+    def get_queryset(self,*args,**kwargs):
+        return self.request.user.account_set.all()
+
+    def get_object(self,*args,**kwargs):
+        name = kwargs.get('account_name')
+        return self.request.user.account_set.get(name=name)
+
+    def get_serializer(self,*args,**kwargs):
+        obj = self.get_object(*args,**kwargs)
+        seri = serialization.AccountSerializer(
+        obj,
+        data=self.request.data,
+        context = {'user':self.request.user,'request':self.request}
+        )
+        return seri
+
+
+    def put(self,request,*args,**kwargs):
+
+        seri = self.get_serializer(*args,**kwargs)
+        if seri.is_valid():
+            seri.save()
+            return Response(seri.get_initial(),status=status.HTTP_200_OK)
+
+        return Response(seri.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
 
 class AccountDeleteView(generics.DestroyAPIView):
     pass
