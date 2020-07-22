@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ObjectDoesNotExist
 import copy
 from . import models
 
@@ -108,7 +109,39 @@ class AccountSerializer(DynamicFieldsModelSerializer):
         model = models.Account
         exclude = ('id',)
         read_only_fields = ('date','user','balance',)
+        extra_kwargs = {
+        'name':{'required':False},
+        }
 
+
+    def validate_name(self,value):
+        """
+        this method is for check name ,
+        for uniqe in the creation not update.
+        """
+
+        if len(value) > 1000 :
+            serializers.ValidationError(
+            detail='Account name characters could not be more than 1000.'
+            )
+
+        if self.context.get('request').method == 'POST' :
+            if not value :
+                raise serializers.ValidationError(
+                detail='Account name is required.'
+                )
+            user = self.context.get('user')
+            if not user :
+                raise ValueError('user should pass by context keyword')
+            try :
+                ins = user.account_set.get(name=value)
+                raise serializers.ValidationError(
+                detail='This name for account has been used.'
+                )
+            except ObjectDoesNotExist :
+                pass
+
+        return value
 
 
     def create(self,validated_data):
@@ -123,4 +156,6 @@ class AccountSerializer(DynamicFieldsModelSerializer):
 
         instance.total = validated_data.get('total',instance.total)
         instance.name = validated_data.get('name',instance.name)
+        instance.update_balance(save=False)
+        instance.save()
         return instance
