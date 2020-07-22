@@ -7,11 +7,6 @@ urlpatterns = [
     name='account-profile'
      ),
 
-     path('q',
-     account_views.queryparams.as_view(),
-
-      ),
-
     path('<str:account_name>/update',
     account_views.AccountUpdateView.as_view(),
     name='account-update'
