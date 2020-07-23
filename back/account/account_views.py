@@ -1,10 +1,11 @@
 from rest_framework.views import APIView
 from rest_framework import generics
-from rest_framework_jwt.authentication import BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import BasicAuthentication
+from rest_framework.pagination import PageNumberPagination
+from rest_framework import exceptions as rest_exceptions
 from django.contrib.auth import get_user_model
-from django.core import exceptions
+from django.core import exceptions as django_exceptions
 from rest_framework.response import Response
 from rest_framework import status
 from . import serialization
@@ -51,7 +52,7 @@ class AccountProfileView(APIView):
             res = Response(data= seri.data,status=status.HTTP_200_OK)
 
             return res
-        except exceptions.ObjectDoesNotExist :
+        except django_exceptions.ObjectDoesNotExist :
             return Response(
             data={'error':'username or account  not found.'},
             status= status.HTTP_400_BAD_REQUEST
@@ -152,7 +153,6 @@ class AccountDeleteView(generics.DestroyAPIView):
 # --------------------Transactions-------------------------
 
 class TransactionView(APIView):
-
     pass
 
 class TransactionCreateView(generics.CreateAPIView):
@@ -165,4 +165,25 @@ class TransactionDeleteView(generics.DestroyAPIView):
     pass
 
 class TransactionListView(generics.ListAPIView):
-    pass
+
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (BasicAuthentication,)
+    pagination_class = PageNumberPagination
+    serializer_class = serialization.TransactionSerializer
+    order_by = '-date'
+    paginate_by = 10
+
+    def get_queryset(self,*args,**kwargs):
+        acc_name = kwargs.get('account_name')
+        try:
+            account = self.request.user.account_set.get(name= acc_name)
+            return account.transaction_set.all().order_by(self.order_by)
+        except django_exceptions.ObjectDoesNotExist :
+            pass
+
+    def get(self,request,*args,**kwargs):
+        query = self.get_queryset(*args,**kwargs)
+        if not query:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(query,many=True)
+        return Response(serializer.data)
