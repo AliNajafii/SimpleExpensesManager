@@ -392,6 +392,8 @@ class Tag(models.Model):
         return balance
 
 
+
+
 class TransactionNotValid(Exception):
     def __init__(self,*args):
         super().__init__(*args)
