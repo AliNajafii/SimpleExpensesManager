@@ -1,7 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework import generics
-from rest_framework_jwt.authentication import JSONWebTokenAuthentication
+from rest_framework_jwt.authentication import BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import BasicAuthentication
 from django.contrib.auth import get_user_model
 from django.core import exceptions
 from rest_framework.response import Response
@@ -16,7 +17,7 @@ class AccountCreateView(generics.CreateAPIView):
     serializer_class = serialization.AccountSerializer
     model = models.Account
     permission_classes = (IsAuthenticated,)
-    authentication_classes = (JSONWebTokenAuthentication,)
+    authentication_classes = (BasicAuthentication,)
 
 
 
@@ -37,10 +38,9 @@ class AccountCreateView(generics.CreateAPIView):
         status= status.HTTP_400_BAD_REQUEST
         )
 
-
 class AccountProfileView(APIView):
     permission_classes = (IsAuthenticated,)
-    authentication_classes = (JSONWebTokenAuthentication,)
+    authentication_classes = (BasicAuthentication,)
     USER = get_user_model()
     renderer_classes = (JSONRenderer,)
     def get(self,request,*args,**kwargs):
@@ -61,10 +61,9 @@ class AccountProfileView(APIView):
         if not request.method == 'GET':
             raise MethodNotAllowed(method=request.method)
 
-
 class UserAccountListView(generics.ListAPIView):
 
-    authentication_classes = (JSONWebTokenAuthentication,)
+    authentication_classes = (BasicAuthentication,)
 
     def get_queryset(self,*args,**kwargs):
         return self.request.user.account_set.all()
@@ -100,7 +99,7 @@ class UserAccountListView(generics.ListAPIView):
 class AccountUpdateView(generics.UpdateAPIView):
     serializer_class = serialization.AccountSerializer
     permission_classes = (IsAuthenticated,)
-    authentication_classes = (JSONWebTokenAuthentication,)
+    authentication_classes = (BasicAuthentication,)
 
     def get_queryset(self,*args,**kwargs):
         return self.request.user.account_set.all()
@@ -128,10 +127,27 @@ class AccountUpdateView(generics.UpdateAPIView):
 
         return Response(seri.errors,status=status.HTTP_400_BAD_REQUEST)
 
-
-
 class AccountDeleteView(generics.DestroyAPIView):
-    pass
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (BasicAuthentication,)
+    serializer_class = serialization.AccountSerializer
+
+    def get_queryset(self,*args,**kwargs):
+        return self.request.user.account_set.all()
+
+    def get_object(self,*args,**kwargs):
+        queryset = self.get_queryset(*args,**kwargs)
+        acc_name = kwargs.get('account_name')
+        return queryset.get(name = acc_name)
+
+    def delete(self,request,*args,**kwargs):
+        instance = self.get_object(*args,**kwargs)
+        seri = self.serializer_class(instance)
+        instance.delete()
+
+        return Response(seri.data,status=status.HTTP_200_OK)
+
+
 
 # --------------------Transactions-------------------------
 
