@@ -67,6 +67,15 @@ class TransactionSerializer(DynamicFieldsModelSerializer):
         model = models.Transaction
         fields=('is_expense','amount','date','note','tag','category')
         read_only_fields = ('date',)
+        extra_kwargs = {
+            'category':{
+                'required':False
+            },
+            'note':{
+                'required' :False
+            }
+
+        }
 
     def create(self,validated_data):
         tags = validated_data.pop('tag')
@@ -77,7 +86,6 @@ class TransactionSerializer(DynamicFieldsModelSerializer):
             tag_list.append(t)
 
         category = models.Category.objects.create(**cat)
-        category.save()
         instance = models.Transaction(
         category = category,
         **validated_data
@@ -97,9 +105,17 @@ class TransactionSerializer(DynamicFieldsModelSerializer):
             instance.tag.add(*tag_list)
 
         instance.category = validated_data.get('category',instance.category)
-        instance.amount = validated_data.get('amount',instance.amount)
+
+        amount = validated_data.get('amount')
+        # check if amount of transaction is changed then oprate on account total.
+        # if amount is equal as older amount it should not oprate on account balance.
+        operate_on = False
+        if amount and amount != instance.amount:
+            operate_on =True
+            instance.amount = amount
         instance.is_expense = validated_data.get('is_expense',instance.is_expense)
         instance.note = validated_data.get('note',instance.note)
+        instance.save(operate_on)
         return instance
 
 class AccountSerializer(DynamicFieldsModelSerializer):
