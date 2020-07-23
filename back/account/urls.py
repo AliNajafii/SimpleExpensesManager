@@ -12,6 +12,11 @@ urlpatterns = [
     name='account-update'
     ),
 
+    path('<str:account_name>/delete',
+    account_views.AccountDeleteView.as_view(),
+    name='account-delete'
+    ),
+
     path('list',
     account_views.UserAccountListView.as_view(),
     name='account-list'
