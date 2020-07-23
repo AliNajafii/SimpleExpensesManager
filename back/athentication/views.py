@@ -1,3 +1,10 @@
-from django.shortcuts import render
+from rest_framework_jwt.views import APIView
+from rest_framework.response import Response
 
-# Create your views here.
+
+
+class LoginView(APIView):
+    pass
+
+class LogoutView(APIView):
+    pass
