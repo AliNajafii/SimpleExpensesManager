@@ -25,7 +25,7 @@ class Account(models.Model):
         })
 
     def __str__(self):
-        return f'Account({self.total})'
+        return f'Account({self.total})|{self.user.username}'
 
     def add_transaction(self,trans_obj):
         """
@@ -225,8 +225,13 @@ class Transaction(models.Model):
         return info
 
     def save(self,operate_on=False,*args,**kwargs):
-        if operate_on or kwargs.get('operate_on'):
+        if kwargs.get('operate_on'):
+            kwargs.pop('operate_on')
             self.account.add_transaction(self)
+
+        elif operate_on:
+            self.account.add_transaction(self)
+
         super().save(*args,**kwargs)
 
 
