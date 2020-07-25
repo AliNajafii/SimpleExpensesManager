@@ -36,11 +36,40 @@ class DynamicFieldsModelSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(DynamicFieldsModelSerializer):
-    url = serializers.CharField(source='get_absolute_url')
+    url = serializers.CharField(source='get_absolute_url',read_only=True)
     class Meta:
         model = models.Category
         exclude = ('id',)
-        read_only_fields = ('date',)
+        read_only_fields = ('date','url',)
+
+    def get_queryset(self):
+        user = self.context.get('request').user
+        return self.Meta.model.objects.filter(user=user)
+
+    def validate_name(self,value):
+        queryset = self.get_queryset()
+        try :
+            used_cat_name = queryset.get(name=value)
+            raise serializers.ValidationError(
+            detail='This category name has been used.'
+            )
+        except ObjectDoesNotExist:
+            pass
+        return value
+
+    def create(self,validated_data):
+        name = validated_data.get('name')
+        user = self.context.get('request').user
+        instance = self.Meta.model.objects.create(
+        name=name,
+        user=user
+        )
+        return instance
+
+    def update(self,instance,validated_data):
+        instance.name = validated_data.get('name',instance.name)
+        instance.save()
+        return instance
 
 class TagSerializer(DynamicFieldsModelSerializer):
         url = serializers.CharField(source='get_absolute_url',read_only=True)
