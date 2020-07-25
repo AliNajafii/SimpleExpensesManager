@@ -43,11 +43,40 @@ class CategorySerializer(DynamicFieldsModelSerializer):
         read_only_fields = ('date',)
 
 class TagSerializer(DynamicFieldsModelSerializer):
-        url = serializers.CharField(source='get_absolute_url')
+        url = serializers.CharField(source='get_absolute_url',read_only=True)
         class Meta:
             model = models.Tag
             exclude = ('id',)
             read_only_fields = ('date',)
+
+        def get_queryset(self,*args,**kwargs):
+            user = self.context.get('request').user
+            return self.Meta.model.objects.filter(user=user)
+
+        def validate_name(self,value):
+            query = self.get_queryset()
+            used_tag_name = None
+            try :
+                used_tag_name = query.get(name=value)
+                raise serializers.ValidationError(detail='this tag name was used.')
+            except ObjectDoesNotExist :
+                pass
+
+            return value
+
+        def create(self,validated_data):
+            user = self.context.get('request').user
+            name = validated_data.get('name')
+            instance = self.Meta.model.objects.create(
+            user=user,
+            name=name
+            )
+            return instance
+
+        def update(self,instance,validated_data):
+            instance.name = validated_data.get('name',instance.name)
+            instance.save()
+            return instance
 
 class UserSerializer(DynamicFieldsModelSerializer):
     class Meta():
@@ -147,27 +176,21 @@ class AccountSerializer(DynamicFieldsModelSerializer):
         this method is for check name ,
         for uniqe in the creation not update.
         """
-        if self.context.get('test'):
-            return value
-        if len(value) > 1000 :
-            serializers.ValidationError(
-            detail='Account name characters could not be more than 1000.'
-            )
 
-        if self.context.get('request').method == 'POST' :
-            if not value :
+
+        if not value :
                 raise serializers.ValidationError(
                 detail='Account name is required.'
                 )
-            user = self.context.get('user')
-            if not user :
+                user = self.context.get('user')
+        if not user :
                 raise ValueError('user should pass by context keyword')
-            try :
+        try :
                 ins = user.account_set.get(name=value)
                 raise serializers.ValidationError(
                 detail='This name for account has been used.'
                 )
-            except ObjectDoesNotExist :
+        except ObjectDoesNotExist :
                 pass
 
         return value
