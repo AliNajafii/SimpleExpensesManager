@@ -25,7 +25,7 @@ class Account(models.Model):
         })
 
     def __str__(self):
-        return f'Account({self.total})|{self.user.username}'
+        return f'Account({self.total})|{self.name}|{self.user.username}'
 
     def add_transaction(self,trans_obj):
         """
@@ -188,9 +188,10 @@ class Transaction(models.Model):
 
     def get_absolute_url(self):
         return reverse(
-        'transaction_detail',
+        'transaction-detail',
         kwargs={
         'account_name':self.account.name,
+        'transaction_id':self.id
         }
         )
 
