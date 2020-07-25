@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import BasicAuthentication
-from .account_views import URLQueryParamsMixin,URLQueryParamsMixin2
+from .account_views import URLQueryParamsMixin
 from . import serialization
 from django.core import exceptions as django_exceptions
 from . import models
