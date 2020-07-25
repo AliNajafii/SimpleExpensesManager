@@ -32,6 +32,26 @@ urlpatterns = [
     name='transaction-list'
     ),
 
+    path('<str:account_name>/transactions/<int:transaction_id>',
+    account_views.TransactionView.as_view(),
+    name='transaction-detail'
+    ),
+
+    path('<str:account_name>/transactions/create',
+    account_views.TransactionCreateView.as_view(),
+    name='transaction-create'
+    ),
+
+    path('<str:account_name>/transactions/update',
+    account_views.TransactionUpdateView.as_view(),
+    name='transaction-update'
+    ),
+
+    path('<str:account_name>/transactions/create',
+    account_views.TransactionDeleteView.as_view(),
+    name='transaction-delete'
+    ),
+
     path('tag/',
     include('account.tag_urls')
     ),
