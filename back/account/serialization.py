@@ -61,11 +61,16 @@ class UserSerializer(DynamicFieldsModelSerializer):
         }
 
 class TransactionSerializer(DynamicFieldsModelSerializer):
-    tag = TagSerializer(fields=('url',),many=True)
-    category = CategorySerializer(fields=('url',))
+    tag = TagSerializer(fields=('url',),many=True,required=False)
+    category = CategorySerializer(fields=('url',),required=False)
+    url = serializers.SerializerMethodField('get_transaction_url')
+
+    def get_transaction_url(self,obj):
+        return obj.get_absolute_url()
+
     class Meta():
         model = models.Transaction
-        fields=('is_expense','amount','date','note','tag','category')
+        fields=('url','is_expense','amount','date','note','tag','category')
         read_only_fields = ('date',)
         extra_kwargs = {
             'category':{
@@ -73,24 +78,31 @@ class TransactionSerializer(DynamicFieldsModelSerializer):
             },
             'note':{
                 'required' :False
-            }
-
+            },
         }
 
     def create(self,validated_data):
-        tags = validated_data.pop('tag')
-        cat = validated_data.pop('category')
-        tag_list = []
-        for tag in tags:
-            t = models.Tag.objects.create(**tag)
-            tag_list.append(t)
+        tag = validated_data.get('tag')
+        category = validated_data.get('category')
 
-        category = models.Category.objects.create(**cat)
+        tags = validated_data.pop('tag') if tag  is not None  else []
+        cat = validated_data.pop('category') if category is not None  else category
+        tag_list = []
+        if tags:
+            for tag in tags:
+                t = models.Tag.objects.create(**tag)
+                tag_list.append(t)
+        if category:
+            category = models.Category.objects.create(**cat)
         instance = models.Transaction(
         category = category,
         **validated_data
         )
-        instance.tag.add(*tag_list)
+        if tags:
+            instance.tag.add(*tag_list)
+        if category:
+            instance.category = category
+        instance.save(operate_on=True)
         return instance
 
     def update(self,instance,validated_data):
@@ -135,7 +147,8 @@ class AccountSerializer(DynamicFieldsModelSerializer):
         this method is for check name ,
         for uniqe in the creation not update.
         """
-
+        if self.context.get('test'):
+            return value
         if len(value) > 1000 :
             serializers.ValidationError(
             detail='Account name characters could not be more than 1000.'
