@@ -19,12 +19,22 @@ class URLQueryParamsMixin(object):
     by clients within query param
     """
     fields_query_kwarg = 'fields'
+    time_fileds = ['year','month','week','days']
 
     def get_fields_from_query(self,request):
         fields = self.request.query_params.get(self.fields_query_kwarg)
         if fields:
             fields = f',{fields}'.split(',') # for avoiding none functionality
             return tuple(fields)
+
+    def get_time_from_query(self,request):
+        qp = request.query_params
+        time_params = {}
+        for time in self.time_fileds:
+            time_params.update({time:qp.get('time')})
+
+        return time_params
+
 
 
 class AccountCreateView(generics.CreateAPIView):
