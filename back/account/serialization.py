@@ -5,6 +5,19 @@ import copy
 from . import models
 
 
+def Update(instance,vali_data):
+    """
+    this method updates instance with validated_data
+    for simpling the process of updating instance in serializers
+    """
+
+    attrs = [i for i in vali_data.items()]
+    for field,value in attrs:
+        if value != getattr(instance,field): # if the value is the same as instance.field value.
+            setattr(instance,field,value)
+    return instance
+
+
 class URLField(serializers.RelatedField):
 
     def to_representation(self,value):
@@ -110,13 +123,45 @@ class TagSerializer(DynamicFieldsModelSerializer):
 class UserSerializer(DynamicFieldsModelSerializer):
     class Meta():
         model = get_user_model()
-        fields = ('username','first_name','last_name','email',)
-        write_only_fields = ('password',)
+        fields = ('username',
+        'first_name',
+        'last_name',
+        'email',
+        'password',
+        'date_joined',
+        'last_login',
+
+        )
         extra_kwargs = {
         'password':{
-            'required':True
+            'required':True,
+            'write_only':True
+        },
+        'date_joined':{
+            'read_only':True
+        },
+
+        'last_login':{
+            'read_only':True
         }
         }
+
+        def create(self,validate_data):
+            user = self.model.objects.create_user(**validate_data)
+            return user
+
+        def update(self,instance,validate_data):
+            # passsword = None
+            # if validate_data.get('password'):
+            #     password = validate_data.pop('password')
+            # obj= Update(instance,validate_data)
+            # if password:
+            #     obj.set_password(password)
+            # obj.save()
+            # return obj
+
+            dfsddsg
+            
 
 class TransactionSerializer(DynamicFieldsModelSerializer):
     tag = TagSerializer(fields=('url',),many=True,required=False)
