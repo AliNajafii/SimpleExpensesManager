@@ -20,6 +20,8 @@ from rest_framework_jwt import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/',include('athentication.urls')),
+    path('',include('athentication.user_urls')),
+    path('analytics',include('analytics.urls')),
     path('account/',include('account.urls') ),
 
 
