@@ -87,24 +87,16 @@ class Account(models.Model):
         return avg
 
 
-    def last_time_income_avg(self,number_of_duration,*args,**kwargs):
+    def last_time_income_avg(self,*args,**kwargs):
         """
         this method return the average of last,
         month,week and/or hour income transactions.
         note : one of those three time parameters could be True.
 
         """
-        number = number_of_duration or \
-        kwargs.get('number_of_duration')
 
         d1 = timezone.now()
-        d2 = None
-        if kwargs.get('months'):
-            d2 = d1 - relativedelta(months=number)
-        elif kwargs.get('weeks'):
-            d2 = d1 - relativedelta(weeks = number)
-        elif kwargs.get('days') :
-            d2 = d1 - relativedelta(days=number)
+        d2 = d1 - relativedelta(**kwargs)
 
         avg_income = models.Avg(
         'amount',
@@ -132,24 +124,17 @@ class Account(models.Model):
             return avg
 
 
-    def last_time_expense_avg(self,number_of_duration,*args,**kwargs):
+    def last_time_expense_avg(self,*args,**kwargs):
             """
-            this method return the average of last,
-            month,week and/or hour income transactions.
-            note : one of those three time parameters could be True.
+                this method return the average of last,
+                month,week and/or hour income transactions.
+                note : one of those three time parameters could be True.
 
             """
-            number = number_of_duration or \
-            kwargs.get('number_of_duration')
+
 
             d1 = timezone.now()
-            d2 = None
-            if kwargs.get('months'):
-                d2 = d1 - relativedelta(months=number)
-            elif kwargs.get('weeks'):
-                d2 = d1 - relativedelta(weeks = number)
-            elif kwargs.get('days') :
-                d2 = d1 - relativedelta(days=number)
+            d2 = d1 - relativedelta(**kwargs)
 
             avg_income = models.Avg(
             'amount',
