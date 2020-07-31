@@ -130,3 +130,72 @@ class TagInfoSerializer(DynamicFieldsModelSerializer):
 
     def get_transaction_balance(self,obj):
         return obj.get_transaction_balance()['balance']
+
+
+class CategroryInfoSerializer(DynamicFieldsModelSerializer):
+
+    balance = serializers.SerializerMethodField(
+    'get_transaction_balance',
+    read_only = True
+    )
+
+    inc_avg = serializers.SerializerMethodField(
+    'get_inc_avg',
+    read_only = True
+    )
+
+    avg_expense = serializers.SerializerMethodField(
+    'get_exp_avg',
+    read_only = True
+    )
+
+    transaction_number = serializers.SerializerMethodField(
+    'get_transactions_num',
+    read_only = True
+    )
+
+    expense = serializers.SerializerMethodField(
+    'get_expense_transactions',
+    read_only = True
+    )
+
+    income = serializers.SerializerMethodField(
+    'get_income_transactions',
+    read_only = True
+    )
+
+    balance = serializers.SerializerMethodField(
+    'get_transaction_balance',
+    read_only = True
+    )
+
+    class Meta:
+        model = account_models.Category
+
+        fields = ['balance','income','expense',
+        'transaction_number','inc_avg','avg_expense']
+
+    def get_transaction_balance(self,obj):
+
+        return obj.get_balance_of_transactions().get('balance')
+
+    def get_inc_avg(self,obj):
+        return obj.inc_avg().get('inc_avg')
+
+    def get_exp_avg(self,obj):
+        return obj.avg_expense().get('exp_avg')
+
+    def get_transactions_num(self,obj):
+        return obj.get_transactions_num()
+
+
+    def get_expense_transactions(self,obj):
+        queryset = obj.get_expense_transactions()
+        seri = TransactionSerializer(queryset,many=True)
+        return seri.data
+
+
+    def get_income_transactions(self,obj):
+        queryset = obj.get_income_transactions()
+        seri = TransactionSerializer(queryset,many=True)
+        return seri.data
