@@ -91,3 +91,4 @@ class AccountViewSet(viewsets.ViewSet,URLQueryParamsMixin):
             return Response(seri.data,status=status.HTTP_200_OK)
 
         return Response(status=status.HTTP_404_NOT_FOUND)
+        
