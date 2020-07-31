@@ -158,3 +158,87 @@ class TagInfoViewSet(viewsets.ViewSet):
             return Response(seri.data,status=status.HTTP_200_OK)
 
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+class CategoryInfoViewSet(viewsets.ViewSet):
+    lookup_field = 'name'
+    serializer_class = serializer.CategroryInfoSerializer
+    authentication_classes = [BasicAuthentication,]
+
+    def get_queryset(self):
+        return self.request.user.category_set.all()
+
+    def get_object(self):
+        queryset = self.get_queryset()
+        try:
+            obj = queryset.get(name= self.kwargs.get('name'))
+            return obj
+        except django_exceptions.ObjectDoesNotExist:
+            pass
+
+        except django_exceptions.MultipleObjectsReturned:
+            pass
+
+
+
+    @action(['GET'],detail=True,url_path='balance')
+    def get_balance(self,request,**kwargs):
+        obj = self.get_object()
+        if obj :
+            seri = self.serializer_class(obj,fields=('balance',))
+            return Response(seri.data,status=status.HTTP_200_OK)
+        return Response(seri.data,status=status.HTTP_404_NOT_FOUND)
+
+    @action(['GET'],detail=True,url_path='income-avg')
+    def inc_avg(self,request,**kwargs):
+        obj = self.get_object()
+        if obj :
+            seri = self.serializer_class(obj,fields=('inc_avg',))
+            return Response(seri.data,status=status.HTTP_200_OK)
+        return Response(seri.data,status=status.HTTP_404_NOT_FOUND)
+
+    @action(['GET'],detail=True,url_path='expense-avg')
+    def exp_avg(self,request,**kwargs):
+        obj = self.get_object()
+        if obj :
+            seri = self.serializer_class(obj,fields=('avg_expense',))
+            return Response(seri.data,status=status.HTTP_200_OK)
+        return Response(seri.data,status=status.HTTP_404_NOT_FOUND)
+
+
+    @action(['GET'],detail=True,url_path='transaction-number')
+    def get_transactions_num(self,request,**kwargs):
+        obj = self.get_object()
+        if obj:
+            seri = self.serializer_class(obj,fields=('transaction_number',))
+            return Response(seri.data,status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    @action(['GET'],detail=True,url_path='expenses')
+    def get_expense_transactions(self,request,pk=None,**kwargs):
+        obj = self.get_object()
+        if obj:
+            seri = self.serializer_class(obj,fields=('expense',))
+            return Response(seri.data,status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    @action(['GET'],detail=True,url_path='incomes')
+    def get_income_transactions(self,request,pk=None,**kwargs):
+        obj = self.get_object()
+        if obj:
+            seri = self.serializer_class(obj,fields=('income',))
+            return Response(seri.data,status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    @action(['GET'],detail=True,url_path='info')
+    def info(self,request,pk=None,**kwargs):
+        obj = self.get_object()
+        # time = self.get_time_from_query(request)
+        if obj:
+            seri = self.serializer_class(obj)
+            return Response(seri.data,status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_404_NOT_FOUND)
