@@ -271,34 +271,27 @@ class Category(models.Model):
         **duration kwargs are : {'month':duration},
         {'week':duration},{'day':duration}
         note = if **duration is None {'month':1} will be
-        calculated. and one of them should be choosen .
+        calculated .
         """
-        duraton_info = {}
         now = timezone.now()
-        past = None
-        if duration:
-            if duration.keys()[0] == 'month':
-
-                past = now - relativedelta(months=duration.get('month'))
-
-            elif duration.keys()[0] == 'week':
-                past = now - relativedelta(weeks=duration.get('week'))
-
-            elif duration.keys()[0] == 'day':
-                past = now - relativedelta(days=duration.get('day'))
-            else : # if **duration was not None but wrong kwargs had given
-                past = now - relativedelta(months=1)
-        else : # id **duration was None
+        past = now - relativedelta(**duration)
+        if past == now : #no time kwargs passed
             past = now - relativedelta(months=1)
+
 
 
         avg = models.Avg(
         'amount',
-        filter= models.Q(date__range=(now-past,now),is_expense=False)
+        filter= models.Q(date__range=[past,now],is_expense=False)
 
         )
 
-        return self.transaction_set.aggregate(inc_avg = avg)
+        if self.get_income_transactions().exists():
+            return self.transaction_set.aggregate(inc_avg = avg)
+
+        return {'inc_avg' : 0}
+
+
 
 
     def avg_expense(self,**duration):
@@ -309,34 +302,24 @@ class Category(models.Model):
         **duration kwargs are : {'month':duration},
         {'week':duration},{'day':duration}
         note = if **duration is None {'month':1} will be
-        calculated. and one of them should be choosen .
+        calculated.
         """
-        duraton_info = {}
         now = timezone.now()
-        past = None
-        if duration:
-            if duration.keys()[0] == 'month':
-
-                past = now - relativedelta(months=duration.get('month'))
-
-            elif duration.keys()[0] == 'week':
-                past = now - relativedelta(weeks=duration.get('week'))
-
-            elif duration.keys()[0] == 'day':
-                past = now - relativedelta(days=duration.get('day'))
-            else : # if **duration was not None but wrong kwargs had given
-                past = now - relativedelta(months=1)
-        else : # id **duration was None
+        past = now - relativedelta(**duration)
+        if past == now : #no time kwargs passed
             past = now - relativedelta(months=1)
-
 
         avg = models.Avg(
         'amount',
-        filter= models.Q(date__range=(now-past,now),is_expense=True)
+        filter= models.Q(date__range=(past,now),is_expense=True)
 
         )
 
-        return self.transaction_set.aggregate(exp_avg = avg)
+        if self.get_expense_transactions().exists():
+
+            return self.transaction_set.aggregate(exp_avg = avg)
+
+        return {'exp_avg':0}
 
 
 class Tag(models.Model):
