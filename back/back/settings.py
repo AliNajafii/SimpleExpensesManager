@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'rest_framework_jwt',
     'athentication',
     'analytics',
+    'django_restql',
 ]
 
 MIDDLEWARE = [
