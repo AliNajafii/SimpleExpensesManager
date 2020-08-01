@@ -19,10 +19,10 @@ class URLQueryParamsMixin(object):
     by clients within query param
     """
     fields_query_kwarg = 'fields'
-    time_fileds = ['year','month','week','days']
+    time_fileds = ['years','months','weeks','days']
 
     def get_fields_from_query(self,request):
-        fields = self.request.query_params.get(self.fields_query_kwarg)
+        fields = request.query_params.get(self.fields_query_kwarg)
         if fields:
             fields = f',{fields}'.split(',') # for avoiding none functionality
             return tuple(fields)
@@ -31,7 +31,9 @@ class URLQueryParamsMixin(object):
         qp = request.query_params
         time_params = {}
         for time in self.time_fileds:
-            time_params.update({time:qp.get('time')})
+            if qp.get(time):
+                number = int(qp.get(time))
+                time_params.update({time:number})
 
         return time_params
 
@@ -66,10 +68,9 @@ class AccountCreateView(generics.CreateAPIView):
 class AccountProfileView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAuthenticated,)
     authentication_classes = (BasicAuthentication,)
+    permission_classes = (IsAuthenticated,)
     USER = get_user_model()
 
-    def allowed_methods(self):
-        return ['GET','PUT','DELETE','OPTIONS']
     
     def get_serializer(self,*args,**kwargs):
         context = {
@@ -82,7 +83,7 @@ class AccountProfileView(generics.RetrieveUpdateDestroyAPIView):
                 **kwargs
                 )
         return serialization.AccountSerializer(
-            contex=context,
+            context=context,
             *args,
             **kwargs
             )
@@ -93,7 +94,7 @@ class AccountProfileView(generics.RetrieveUpdateDestroyAPIView):
     def get_object(self):
         queryset = self.get_queryset()
         try:
-            obj = queryset.get(name=self.kwargs.get('name'))
+            obj = queryset.get(name=self.kwargs.get('account_name'))
             return obj
         except django_exceptions.ObjectDoesNotExist:
             pass
@@ -120,9 +121,10 @@ class AccountProfileView(generics.RetrieveUpdateDestroyAPIView):
 
     
 
-class UserAccountListView(generics.ListAPIView,URLQueryParamsMixin):
+class UserAccountListView(generics.ListAPIView):
     serializer_class = serialization.AccountSerializer
     authentication_classes = (BasicAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
     def get_queryset(self,*args,**kwargs):
         return self.request.user.account_set.all()
@@ -131,7 +133,6 @@ class UserAccountListView(generics.ListAPIView,URLQueryParamsMixin):
         # client can choose the field for json representation
         seri = None
         query = self.get_queryset()
-        fields = self.get_fields_from_query(self.request)
         seri = serialization.AccountSerializer(
                 query,
                 many=True,
@@ -151,16 +152,31 @@ class UserAccountListView(generics.ListAPIView,URLQueryParamsMixin):
 class TransactionCreateView(generics.CreateAPIView):
     serializer_class = serialization.TransactionSerializer
     authentication_classes = (BasicAuthentication,)
+    permission_classes = (IsAuthenticated,)
     model = models.Transaction
 
     def get_serializer(self,*args,**kwargs):
+        name = self.kwargs.get('account_name')
+        account =  self.request.user.account_set.get(name=name)
         if self.serializer_class:
-            return self.serializer_class(fields=fields,*args,**kwargs)
-        return serialization.TransactionSerializer(fields=fileds,*args,**kwargs)
+            return self.serializer_class(
+                context={
+                    'account':account,
+                    'request':self.request,
+                    'is_making_transaction':True
+                    },
+                *args,
+                **kwargs)
+        return serialization.TransactionSerializer(*args,**kwargs)
 
 
-    def get_queryset(self,*args,**kwargs):
-        return self.request.user.transaction_set.all()
+    def get_queryset(self):
+        name = self.kwargs.get('account_name')
+        try:
+            account =  self.request.user.account_set.get(name=name)
+            return account.transaction_set.all()
+        except django_exceptions.ObjectDoesNotExist:
+            pass
 
     def get_object(self):
         queryset = self.get_queryset()
@@ -174,7 +190,8 @@ class TransactionCreateView(generics.CreateAPIView):
 class TransactionDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = serialization.TransactionSerializer
     authentication_classes = (BasicAuthentication,)
-
+    permission_classes = (IsAuthenticated,)
+    
     def get_serializer(self,*args,**kwargs):
         if self.serializer_class:
             return self.serializer_class(context={'request':self.request},*args,**kwargs)
@@ -182,12 +199,17 @@ class TransactionDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
     def get_queryset(self):
-        return self.request.user.transaction_set.all()
+        name = self.kwargs.get('account_name')
+        try:
+            account =  self.request.user.account_set.get(name=name)
+            return account.transaction_set.all()
+        except django_exceptions.ObjectDoesNotExist:
+            pass
 
     def get_object(self):
         queryset = self.get_queryset()
         try:
-            obj = queryset.get(id= self.kwargs.get('id'))
+            obj = queryset.get(id= self.kwargs.get('trans_id'))
             return obj
         except django_exceptions.ObjectDoesNotExist:
             pass
@@ -199,9 +221,6 @@ class TransactionListView(generics.ListAPIView):
     authentication_classes = (BasicAuthentication,)
     serializer_class = serialization.TransactionSerializer
     pagination_class = LimitOffsetPagination
-    # page_size = 1
-    # page_query_param = 'page'
-    # page_size_query_param = 'page_size'
     order_by = '-date'
 
     def get_queryset(self,*args,**kwargs):
@@ -217,5 +236,10 @@ class TransactionListView(generics.ListAPIView):
         return cls(query,many=True)
 
     def get(self,request,*args,**kwargs):
-        serializer = self.get_serializer(*args,**kwargs)
-        return Response(serializer.data)
+        queryset = self.get_queryset()
+        if queryset :
+
+            serializer = self.get_serializer(queryset,many=True)
+            return Response(serializer.data)
+        
+        return Response(status=status.HTTP_404_NOT_FOUND)
