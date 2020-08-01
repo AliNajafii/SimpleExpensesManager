@@ -43,52 +43,85 @@ class AccountCreateView(generics.CreateAPIView):
     permission_classes = (IsAuthenticated,)
     authentication_classes = (BasicAuthentication,)
 
-
-
-    def post(self,request,*args,**kwargs):
-
-        seri = serialization.AccountSerializer(data=request.data,
-        context={'user':request.user,'request':request})
-        if seri.is_valid():
-            seri.save()
-            account = seri.instance
-            request.user.account_set.add(account)
-            return Response(
-            data=seri.data,
-            status= status.HTTP_201_CREATED
-            )
-        return Response(
-        data= seri.errors,
-        status= status.HTTP_400_BAD_REQUEST
+    def get_queryset(self):
+        return self.request.user.account_set.all()
+    
+    def get_serializer(self,*args,**kwargs):
+        context = {
+            'request': self.request
+        }
+        if self.serializer_class:
+            return serializer_class(
+                context=context,
+                *args,
+                **kwargs
+                )
+        return serialization.AccountSerializer(
+            context=context,
+            *args,
+            **kwargs
         )
+            
 
-class AccountProfileView(APIView,URLQueryParamsMixin):
+class AccountProfileView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAuthenticated,)
     authentication_classes = (BasicAuthentication,)
     USER = get_user_model()
-    renderer_classes = (JSONRenderer,)
-    def get(self,request,*args,**kwargs):
-        try :
-            user = request.user
-            account = user.account_set.get(name = kwargs.get('account_name'))
-            fields = self.get_fields_from_query(request)
-            seri = serialization.AccountSerializer(account,fields=fields)
 
-            res = Response(data= seri.data,status=status.HTTP_200_OK)
-
-            return res
-        except django_exceptions.ObjectDoesNotExist :
-            return Response(
-            data={'error':'username or account  not found.'},
-            status= status.HTTP_400_BAD_REQUEST
+    def allowed_methods(self):
+        return ['GET','PUT','DELETE','OPTIONS']
+    
+    def get_serializer(self,*args,**kwargs):
+        context = {
+            'request':self.request,
+            }
+        if self.serializer_class:
+            return self.serializer_class(
+                context=context
+                *args,
+                **kwargs
+                )
+        return serialization.AccountSerializer(
+            contex=context,
+            *args,
+            **kwargs
             )
+    
+    def get_queryset(self):
+        return self.request.user.account_set.all()
+    
+    def get_object(self):
+        queryset = self.get_queryset()
+        try:
+            obj = queryset.get(name=self.kwargs.get('name'))
+            return obj
+        except django_exceptions.ObjectDoesNotExist:
+            pass
+    
+    def retrieve(self,request,*args,**kwargs):
+        obj = self.get_object()
+        if obj:
+            seri = self.get_serializer(obj)
+            return Response(seri.data)
+        
+        return Response(status= status.HTTP_404_NOT_FOUND)
+    
+    def update(self,request,*args,**kwargs):
+        obj = self.get_object()
+        if obj :
+            seri = self.get_serializer(obj,data=request.data)
+            if seri.is_valid():
+                seri.save()
+                return Response(seri.data)
+            return Response(seri.errors)
+        return Response(status= status.HTTP_404_NOT_FOUND)
 
-    def http_method_not_allowed(self,request,*args,**kwargs):
-        if not request.method == 'GET':
-            raise MethodNotAllowed(method=request.method)
+    
+
+    
 
 class UserAccountListView(generics.ListAPIView,URLQueryParamsMixin):
-
+    serializer_class = serialization.AccountSerializer
     authentication_classes = (BasicAuthentication,)
 
     def get_queryset(self,*args,**kwargs):
@@ -102,126 +135,65 @@ class UserAccountListView(generics.ListAPIView,URLQueryParamsMixin):
         seri = serialization.AccountSerializer(
                 query,
                 many=True,
-                fields = fields
+                context = {'request':self.request}
             )
 
         return seri
 
 
-class AccountUpdateView(generics.UpdateAPIView):
-    serializer_class = serialization.AccountSerializer
-    permission_classes = (IsAuthenticated,)
-    authentication_classes = (BasicAuthentication,)
-
-    def get_queryset(self,*args,**kwargs):
-        return self.request.user.account_set.all()
-
-    def get_object(self,*args,**kwargs):
-        name = kwargs.get('account_name')
-        return self.request.user.account_set.get(name=name)
-
-    def get_serializer(self,*args,**kwargs):
-        obj = self.get_object(*args,**kwargs)
-        seri = serialization.AccountSerializer(
-        obj,
-        data=self.request.data,
-        context = {'user':self.request.user,'request':self.request}
-        )
-        return seri
-
-
-    def put(self,request,*args,**kwargs):
-
-        seri = self.get_serializer(*args,**kwargs)
-        if seri.is_valid():
-            seri.save()
-            return Response(seri.get_initial(),status=status.HTTP_200_OK)
-
-        return Response(seri.errors,status=status.HTTP_400_BAD_REQUEST)
-
-class AccountDeleteView(generics.DestroyAPIView):
-    permission_classes = (IsAuthenticated,)
-    authentication_classes = (BasicAuthentication,)
-    serializer_class = serialization.AccountSerializer
-
-    def get_queryset(self,*args,**kwargs):
-        return self.request.user.account_set.all()
-
-    def get_object(self,*args,**kwargs):
-        queryset = self.get_queryset(*args,**kwargs)
-        acc_name = kwargs.get('account_name')
-        return queryset.get(name = acc_name)
-
-    def delete(self,request,*args,**kwargs):
-        instance = self.get_object(*args,**kwargs)
-        seri = self.serializer_class(instance)
-        instance.delete()
-
-        return Response(seri.data,status=status.HTTP_200_OK)
 
 
 
 # --------------------Transactions-------------------------
 
-class TransactionView(APIView,URLQueryParamsMixin):
-    permission_classes = (IsAuthenticated,)
-    authentication_classes = (BasicAuthentication,)
-    serializer_class = serialization.TransactionSerializer
-
-    def get_serializer(self,*args,**kwargs):
-        fields = self.get_fields_from_query(self.request)
-        if self.serializer_class:
-            return self.serializer_class(fields=fields,*args,**kwargs)
-        return serialization.TransactionSerializer(fields=fileds,*args,**kwargs)
-
-    def get_queryset(self,*args,**kwargs):
-            acc_name = kwargs.get('account_name')
-            try:
-                accounts = self.request.user.account_set.get(name=acc_name)
-                transactions = accounts.transaction_set.all()
-                return transactions
-            except django_exceptions.ObjectDoesNotExist:
-                pass
-
-    def get_object(self,*args,**kwargs):
-        id = kwargs.get('transaction_id')
-        query = self.get_queryset(*args,**kwargs)
-        if query :
-            try:
-                obj = query.get(id=id)
-                return obj
-            except django_exceptions.ObjectDoesNotExist:
-                pass
-
-    def get(self,request,*args,**kwargs):
-
-        obj = self.get_object(*args,**kwargs)
-        if not obj:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-        serilizer = self.get_serializer(obj)
-        return Response(serilizer.data,status=status.HTTP_200_OK)
 
 
 class TransactionCreateView(generics.CreateAPIView):
     serializer_class = serialization.TransactionSerializer
+    authentication_classes = (BasicAuthentication,)
+    model = models.Transaction
+
+    def get_serializer(self,*args,**kwargs):
+        if self.serializer_class:
+            return self.serializer_class(fields=fields,*args,**kwargs)
+        return serialization.TransactionSerializer(fields=fileds,*args,**kwargs)
+
 
     def get_queryset(self,*args,**kwargs):
-        name = kwargs.get('account_name')
+        return self.request.user.transaction_set.all()
+
+    def get_object(self):
+        queryset = self.get_queryset()
         try:
-            account = self.request.user.account_set.get()
-            return account.transaction_set.all().order_by('-date')
+            obj = queryset.get(name=self.kwargs.get('name'))
+            return obj
         except django_exceptions.ObjectDoesNotExist:
             pass
 
 
-class TransactionUpdateView(generics.UpdateAPIView):
-    pass
+class TransactionDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = serialization.TransactionSerializer
+    authentication_classes = (BasicAuthentication,)
 
-class TransactionDeleteView(generics.DestroyAPIView):
-    pass
+    def get_serializer(self,*args,**kwargs):
+        if self.serializer_class:
+            return self.serializer_class(context={'request':self.request},*args,**kwargs)
+        return serialization.TransactionSerializer(fields=fileds,*args,**kwargs)
 
-class TransactionListView(generics.ListAPIView,URLQueryParamsMixin):
+
+    def get_queryset(self):
+        return self.request.user.transaction_set.all()
+
+    def get_object(self):
+        queryset = self.get_queryset()
+        try:
+            obj = queryset.get(id= self.kwargs.get('id'))
+            return obj
+        except django_exceptions.ObjectDoesNotExist:
+            pass
+
+
+class TransactionListView(generics.ListAPIView):
 
     permission_classes = (IsAuthenticated,)
     authentication_classes = (BasicAuthentication,)
@@ -240,10 +212,9 @@ class TransactionListView(generics.ListAPIView,URLQueryParamsMixin):
         except django_exceptions.ObjectDoesNotExist :
             pass
     def get_serializer(self,*args,**kwargs):
-        fields = self.get_fields_from_query(self.request)
         cls = self.serializer_class
         query = self.get_queryset(*args,**kwargs)
-        return cls(query,fields=fields,many=True)
+        return cls(query,many=True)
 
     def get(self,request,*args,**kwargs):
         serializer = self.get_serializer(*args,**kwargs)
