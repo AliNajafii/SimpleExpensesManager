@@ -22,7 +22,7 @@ urlpatterns = [
     name='transaction-list'
     ),
 
-    path('<str:account_name>/transactions/<int:id>',
+    path('<str:account_name>/transactions/<int:trans_id>',
     account_views.TransactionDetailView.as_view(),
     name='transaction-detail'
     ),
