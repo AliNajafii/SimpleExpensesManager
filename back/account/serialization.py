@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
+from django_restql.mixins import DynamicFieldsMixin
+from django_restql.fields import DynamicSerializerMethodField
 import copy
 from . import models
 
@@ -18,42 +20,37 @@ def Update(instance,vali_data):
     return instance
 
 
-class URLField(serializers.RelatedField):
 
-    def to_representation(self,value):
-        return {
-        'url':value.get_absolute_url()
-        }
+# class DynamicFieldsModelSerializer(serializers.ModelSerializer):
+#     """
+#     A ModelSerializer that takes an additional `fields` argument that
+#     controls which fields should be displayed.
+#     """
 
-
-
-class DynamicFieldsModelSerializer(serializers.ModelSerializer):
-    """
-    A ModelSerializer that takes an additional `fields` argument that
-    controls which fields should be displayed.
-    """
-
-    def __init__(self, *args, **kwargs):
-        # Don't pass the 'fields' arg up to the superclass
-        fields = kwargs.pop('fields', None)
-        self.name = kwargs.pop('name',None) #for specification of selected fields for child serializers
-        # Instantiate the superclass normally
-        super(DynamicFieldsModelSerializer, self).__init__(*args, **kwargs)
-        if fields is not None:
-        # Drop any fields that are not specified in the `fields` argument.
-            allowed = set(fields)
-            existing = set(self.fields)
-            for field_name in existing - allowed:
-                self.fields.pop(field_name)
+#     def __init__(self, *args, **kwargs):
+#         # Don't pass the 'fields' arg up to the superclass
+#         fields = kwargs.pop('fields', None)
+#         self.name = kwargs.pop('name',None) #for specification of selected fields for child serializers
+#         # Instantiate the superclass normally
+#         super(DynamicFieldsModelSerializer, self).__init__(*args, **kwargs)
+#         if fields is not None:
+#         # Drop any fields that are not specified in the `fields` argument.
+#             allowed = set(fields)
+#             existing = set(self.fields)
+#             for field_name in existing - allowed:
+#                 self.fields.pop(field_name)
 
 
 
-class CategorySerializer(DynamicFieldsModelSerializer):
-    url = serializers.CharField(source='get_absolute_url',read_only=True)
+class CategorySerializer(DynamicFieldsMixin,serializers.ModelSerializer):
+    url = serializers.SerializerMethodField('get_url',read_only=True)
     class Meta:
         model = models.Category
         exclude = ('id',)
         read_only_fields = ('date','url',)
+
+    def get_url(self,obj):
+        return obj.get_absolute_url()
 
     def get_queryset(self):
         user = self.context.get('request').user
@@ -84,12 +81,16 @@ class CategorySerializer(DynamicFieldsModelSerializer):
         instance.save()
         return instance
 
-class TagSerializer(DynamicFieldsModelSerializer):
-        url = serializers.CharField(source='get_absolute_url',read_only=True)
+class TagSerializer(DynamicFieldsMixin,serializers.ModelSerializer):
+        url = serializers.SerializerMethodField('get_url',read_only=True)
         class Meta:
             model = models.Tag
             exclude = ('id',)
             read_only_fields = ('date',)
+
+        def get_url(self,obj):
+            return obj.get_absolute_url()
+
 
         def get_queryset(self,*args,**kwargs):
             user = self.context.get('request').user
@@ -120,7 +121,7 @@ class TagSerializer(DynamicFieldsModelSerializer):
             instance.save()
             return instance
 
-class UserSerializer(DynamicFieldsModelSerializer):
+class UserSerializer(DynamicFieldsMixin,serializers.ModelSerializer):
     class Meta():
         model = get_user_model()
         fields = ('username',
@@ -163,9 +164,9 @@ class UserSerializer(DynamicFieldsModelSerializer):
             dfsddsg
             
 
-class TransactionSerializer(DynamicFieldsModelSerializer):
-    tag = TagSerializer(fields=('url',),many=True,required=False)
-    category = CategorySerializer(fields=('url',),required=False)
+class TransactionSerializer(DynamicFieldsMixin,serializers.ModelSerializer):
+    tag = TagSerializer(many=True,required=False)
+    category = CategorySerializer(required=False)
     url = serializers.SerializerMethodField('get_transaction_url')
 
     def get_transaction_url(self,obj):
@@ -233,15 +234,15 @@ class TransactionSerializer(DynamicFieldsModelSerializer):
         instance.save(operate_on)
         return instance
 
-class AccountSerializer(DynamicFieldsModelSerializer):
-    transaction_set = TransactionSerializer(name='transaction',many=True,required=False)
-    user = UserSerializer(name='user',read_only =True)
+class AccountSerializer(DynamicFieldsMixin,serializers.ModelSerializer):
+    transaction_set = TransactionSerializer(many=True,required=False)
+    user = UserSerializer(read_only =True)
     class Meta():
         model = models.Account
         exclude = ('id',)
         read_only_fields = ('date','user','balance',)
         extra_kwargs = {
-        'name':{'required':False},
+        'user':{'required':False,'read_only':True},
         }
 
 
