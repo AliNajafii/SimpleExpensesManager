@@ -57,14 +57,17 @@ class CategorySerializer(DynamicFieldsMixin,serializers.ModelSerializer):
         return self.Meta.model.objects.filter(user=user)
 
     def validate_name(self,value):
-        queryset = self.get_queryset()
-        try :
-            used_cat_name = queryset.get(name=value)
-            raise serializers.ValidationError(
-            detail='This category name has been used.'
-            )
-        except ObjectDoesNotExist:
-            pass
+        if not self.context.get('is_making_transaction'):
+    
+            queryset = self.get_queryset()
+            try :
+                used_cat_name = queryset.get(name=value)
+                raise serializers.ValidationError(
+                detail='This category name has been used.'
+                )
+            except ObjectDoesNotExist:
+                pass
+            return value
         return value
 
     def create(self,validated_data):
@@ -97,14 +100,16 @@ class TagSerializer(DynamicFieldsMixin,serializers.ModelSerializer):
             return self.Meta.model.objects.filter(user=user)
 
         def validate_name(self,value):
-            query = self.get_queryset()
-            used_tag_name = None
-            try :
-                used_tag_name = query.get(name=value)
-                raise serializers.ValidationError(detail='this tag name was used.')
-            except ObjectDoesNotExist :
-                pass
+            if not self.context.get('is_making_transaction'):
+                query = self.get_queryset()
+                used_tag_name = None
+                try :
+                    used_tag_name = query.get(name=value)
+                    raise serializers.ValidationError(detail='this tag name was used.')
+                except ObjectDoesNotExist :
+                    pass
 
+                return value
             return value
 
         def create(self,validated_data):
@@ -184,44 +189,64 @@ class TransactionSerializer(DynamicFieldsMixin,serializers.ModelSerializer):
                 'required' :False
             },
         }
+    
+    def validate(self,attrs):
+        account = self.context.get('account')
+        if attrs.get('is_expense'):
+            if account.total < attrs.get('amount'):
+                raise serializers.ValidationError(
+                    detail='Transaction Amount is bigger than account total'
+                )
+        if attrs.get('tag'):
+            tags = TagSerializer(
+                data=attrs.get('tag'),
+                many=True,
+                context=self.context
+                )
+            if not tags.is_valid():
+                raise serializers.ValidationError(
+            detail= tags.errors
+            )
+
+        if attrs.get('category'):
+            cat_seri = CategorySerializer(data=attrs.get('category'),context=self.context)
+            if not cat_seri.is_valid():
+                raise serializers.ValidationError(
+            detail= cat_seri.errors
+            )
+        
+        return super().validate(attrs)
 
     def create(self,validated_data):
         tag = validated_data.get('tag')
         category = validated_data.get('category')
+        account = self.context.get('account')
 
         tags = validated_data.pop('tag') if tag  is not None  else []
         cat = validated_data.pop('category') if category is not None  else category
         tag_list = []
-        if tags:
-            for tag in tags:
-                t = models.Tag.objects.create(**tag)
-                tag_list.append(t)
-        if category:
-            category = models.Category.objects.create(**cat)
+        user = self.context.get('request').user
         instance = models.Transaction(
-        category = category,
+        account = account,
         **validated_data
         )
-        if tags:
-            instance.tag.add(*tag_list)
-        if category:
-            instance.category = category
         instance.save(operate_on=True)
+        if tags:
+            for tag in tags:
+                t = models.Tag.objects.get_or_create(user=user,**tag)[0]
+                tag_list.append(t)
+            instance.tag.add(*tag_list)
+
+        if category:
+            category = models.Category.objects.get_or_create(user=user,**cat)[0]
+            instance.category = category
+
+        
         return instance
 
     def update(self,instance,validated_data):
 
-        tags = validated_data.get('tag')
-        tag_list = []
-
-        if tags :
-            for tag in tags:
-                t = models.Tag.objects.get_or_create(**tag)
-                tag_list.append(t)
-            instance.tag.add(*tag_list)
-
-        instance.category = validated_data.get('category',instance.category)
-
+        
         amount = validated_data.get('amount')
         # check if amount of transaction is changed then oprate on account total.
         # if amount is equal as older amount it should not oprate on account balance.
