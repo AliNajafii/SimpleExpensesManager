@@ -45,7 +45,8 @@ class Account(models.Model):
             self.save()
         else:
             raise TransactionNotValid()
-
+    
+    
     def update_balance(self,save=True):
         incs = 0
         exps = 0
@@ -171,12 +172,24 @@ class Transaction(models.Model):
     null=True
     )
 
+    def check_amount(self):
+        """
+        checks if transaction cost amount is bigger 
+        than account.total returns False
+        """
+        if self.is_expense:
+            if self.amount > self.account.total:
+                return False
+            
+            return True
+        return True
+
     def get_absolute_url(self):
         return reverse(
         'transaction-detail',
         kwargs={
         'account_name':self.account.name,
-        'transaction_id':self.id
+        'trans_id':self.id
         }
         )
 
@@ -361,9 +374,13 @@ class Tag(models.Model):
             incs = models.Sum('amount',filter=models.Q(is_expense=False))
         if self.get_expense_transactions().exists():
             exps = models.Sum('amount',filter=models.Q(is_expense=True))
-        balance= self.transaction_set.aggregate(balance= incs - exps)
+        if incs - exps :
+            balance= self.transaction_set.aggregate(balance= incs - exps)
+            return balance
+        
+        return {'balance':0}
 
-        return balance
+        
 
 
 
