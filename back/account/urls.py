@@ -7,16 +7,6 @@ urlpatterns = [
     name='account-profile'
      ),
 
-    path('<str:account_name>/update',
-    account_views.AccountUpdateView.as_view(),
-    name='account-update'
-    ),
-
-    path('<str:account_name>/delete',
-    account_views.AccountDeleteView.as_view(),
-    name='account-delete'
-    ),
-
     path('list',
     account_views.UserAccountListView.as_view(),
     name='account-list'
@@ -32,8 +22,8 @@ urlpatterns = [
     name='transaction-list'
     ),
 
-    path('<str:account_name>/transactions/<int:transaction_id>',
-    account_views.TransactionView.as_view(),
+    path('<str:account_name>/transactions/<int:id>',
+    account_views.TransactionDetailView.as_view(),
     name='transaction-detail'
     ),
 
@@ -42,15 +32,6 @@ urlpatterns = [
     name='transaction-create'
     ),
 
-    path('<str:account_name>/transactions/update',
-    account_views.TransactionUpdateView.as_view(),
-    name='transaction-update'
-    ),
-
-    path('<str:account_name>/transactions/create',
-    account_views.TransactionDeleteView.as_view(),
-    name='transaction-delete'
-    ),
 
     path('tag/',
     include('account.tag_urls')
