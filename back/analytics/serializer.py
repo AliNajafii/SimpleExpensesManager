@@ -1,11 +1,12 @@
 from rest_framework import serializers
 from account import models as account_models
 from account.serialization import (
-TransactionSerializer,DynamicFieldsModelSerializer
+TransactionSerializer
 )
+from django_restql.mixins import DynamicFieldsMixin
 
 
-class AccountInfoSerializer(DynamicFieldsModelSerializer):
+class AccountInfoSerializer(DynamicFieldsMixin,serializers.ModelSerializer):
     transaction_number = serializers.IntegerField(
     source='get_transactions_num',
     read_only = True
@@ -84,7 +85,7 @@ class AccountInfoSerializer(DynamicFieldsModelSerializer):
 
 
 
-class TagInfoSerializer(DynamicFieldsModelSerializer):
+class TagInfoSerializer(DynamicFieldsMixin,serializers.ModelSerializer):
 
     transaction_number = serializers.SerializerMethodField(
     'get_transactions_num',
@@ -132,7 +133,7 @@ class TagInfoSerializer(DynamicFieldsModelSerializer):
         return obj.get_transaction_balance()['balance']
 
 
-class CategroryInfoSerializer(DynamicFieldsModelSerializer):
+class CategroryInfoSerializer(DynamicFieldsMixin,serializers.ModelSerializer):
 
     balance = serializers.SerializerMethodField(
     'get_transaction_balance',
