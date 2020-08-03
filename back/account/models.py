@@ -45,8 +45,8 @@ class Account(models.Model):
             self.save()
         else:
             raise TransactionNotValid()
-    
-    
+
+
     def update_balance(self,save=True):
         incs = 0
         exps = 0
@@ -146,7 +146,42 @@ class Account(models.Model):
 
             return avg
 
+    def last_time_amount_list(self,*args,**kwargs):
+        """
+        returns the transactions amount in
+        specific time in queryset list format
+        """
+        if kwargs.get('extra_query'):
+            extra_query = kwargs.pop('extra_query')
 
+
+        start = timezone.now() - relativedelta(**kwargs)
+        end = timezone.now()
+        amounts  = self.transaction_set.filter(date__range=(start,end),**extra_query).values_list('amount',flat=True)
+        return amounts
+
+    def last_time_expense_amount_list(self,extra_query=None,*args,**kwargs):
+        query = {
+        'extra_query':{
+            'is_expense':True
+            }
+        }
+        if extra_query:
+            query['extra_query'].update(extra_query)
+
+        kwargs.update(query)
+        return self.last_time_amount_list(*args,**kwargs)
+
+    def last_time_income_amount_list(self,extra_query=None,*args,**kwargs):
+        query = {
+        'extra_query':{
+            'is_expense':False
+            }
+        }
+        if extra_query:
+            query['extra_query'].update(extra_query)
+        kwargs.update(query)
+        return self.last_time_amount_list(*args,**kwargs)
 
 class Transaction(models.Model):
     transaction_type = ('exp','inc',)
@@ -174,13 +209,13 @@ class Transaction(models.Model):
 
     def check_amount(self):
         """
-        checks if transaction cost amount is bigger 
+        checks if transaction cost amount is bigger
         than account.total returns False
         """
         if self.is_expense:
             if self.amount > self.account.total:
                 return False
-            
+
             return True
         return True
 
@@ -192,6 +227,8 @@ class Transaction(models.Model):
         'trans_id':self.id
         }
         )
+
+
 
     def __str__(self):
         if self.is_expense:
@@ -334,6 +371,43 @@ class Category(models.Model):
 
         return {'exp_avg':0}
 
+    def last_time_amount_list(self,*args,**kwargs):
+        """
+        returns the transactions amount in
+        specific time in queryset list format
+        """
+        if kwargs.get('extra_query'):
+            extra_query = kwargs.pop('extra_query')
+
+
+        start = timezone.now() - relativedelta(**kwargs)
+        end = timezone.now()
+        amounts  = self.transaction_set.filter(date__range=(start,end),**extra_query).values_list('amount',flat=True)
+        return amounts
+
+    def last_time_expense_amount_list(self,extra_query=None,*args,**kwargs):
+        query = {
+        'extra_query':{
+            'is_expense':True
+            }
+        }
+        if extra_query:
+            query.update(extra_query)
+
+        kwargs.update(query)
+        return self.last_time_amount_list(*args,**kwargs)
+
+    def last_time_income_amount_list(self,extra_query=None,*args,**kwargs):
+        query = {
+        'extra_query':{
+            'is_expense':False
+            }
+        }
+        if extra_query:
+            query.update(extra_query)
+        kwargs.update(query)
+        return self.last_time_amount_list(*args,**kwargs)
+
 
 class Tag(models.Model):
     date = models.DateTimeField(auto_now_add=True)
@@ -377,12 +451,45 @@ class Tag(models.Model):
         if incs - exps :
             balance= self.transaction_set.aggregate(balance= incs - exps)
             return balance
-        
+
         return {'balance':0}
 
-        
 
+    def last_time_amount_list(self,*args,**kwargs):
+        """
+        returns the transactions amount in
+        specific time in queryset list format
+        """
+        if kwargs.get('extra_query'):
+            extra_query = kwargs.pop('extra_query')
 
+        start = timezone.now() - relativedelta(**kwargs)
+        end = timezone.now()
+        amounts  = self.transaction_set.filter(date__range=(start,end),**extra_query).values_list('amount',flat=True)
+        return amounts
+
+    def last_time_expense_amount_list(self,extra_query=None,*args,**kwargs):
+        query = {
+        'extra_query':{
+            'is_expense':True
+            }
+        }
+        if extra_query:
+            query.update(extra_query)
+
+        kwargs.update(query)
+        return self.last_time_amount_list(*args,**kwargs)
+
+    def last_time_income_amount_list(self,extra_query=None,*args,**kwargs):
+        query = {
+        'extra_query':{
+            'is_expense':False
+            }
+        }
+        if extra_query:
+            query.update(extra_query)
+        kwargs.update(query)
+        return self.last_time_amount_list(*args,**kwargs)
 
 
 class TransactionNotValid(Exception):
