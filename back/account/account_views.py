@@ -12,6 +12,7 @@ from . import serialization
 from rest_framework.renderers import JSONRenderer
 from . import serialization
 from . import models
+from .paginators import DefaultPagination
 
 class URLQueryParamsMixin(object):
     """
@@ -47,7 +48,7 @@ class AccountCreateView(generics.CreateAPIView):
 
     def get_queryset(self):
         return self.request.user.account_set.all()
-    
+
     def get_serializer(self,*args,**kwargs):
         context = {
             'request': self.request
@@ -63,7 +64,7 @@ class AccountCreateView(generics.CreateAPIView):
             *args,
             **kwargs
         )
-            
+
 
 class AccountProfileView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAuthenticated,)
@@ -71,7 +72,7 @@ class AccountProfileView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAuthenticated,)
     USER = get_user_model()
 
-    
+
     def get_serializer(self,*args,**kwargs):
         context = {
             'request':self.request,
@@ -87,10 +88,10 @@ class AccountProfileView(generics.RetrieveUpdateDestroyAPIView):
             *args,
             **kwargs
             )
-    
+
     def get_queryset(self):
         return self.request.user.account_set.all()
-    
+
     def get_object(self):
         queryset = self.get_queryset()
         try:
@@ -98,15 +99,15 @@ class AccountProfileView(generics.RetrieveUpdateDestroyAPIView):
             return obj
         except django_exceptions.ObjectDoesNotExist:
             pass
-    
+
     def retrieve(self,request,*args,**kwargs):
         obj = self.get_object()
         if obj:
             seri = self.get_serializer(obj)
             return Response(seri.data)
-        
+
         return Response(status= status.HTTP_404_NOT_FOUND)
-    
+
     def update(self,request,*args,**kwargs):
         obj = self.get_object()
         if obj :
@@ -117,14 +118,15 @@ class AccountProfileView(generics.RetrieveUpdateDestroyAPIView):
             return Response(seri.errors)
         return Response(status= status.HTTP_404_NOT_FOUND)
 
-    
 
-    
+
+
 
 class UserAccountListView(generics.ListAPIView):
     serializer_class = serialization.AccountSerializer
     authentication_classes = (BasicAuthentication,)
     permission_classes = (IsAuthenticated,)
+    pagination_class = DefaultPagination
 
     def get_queryset(self,*args,**kwargs):
         return self.request.user.account_set.all()
@@ -133,8 +135,9 @@ class UserAccountListView(generics.ListAPIView):
         # client can choose the field for json representation
         seri = None
         query = self.get_queryset()
+        paginated_query = self.paginate_queryset(query)
         seri = serialization.AccountSerializer(
-                query,
+                paginated_query,
                 many=True,
                 context = {'request':self.request}
             )
@@ -191,7 +194,7 @@ class TransactionDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = serialization.TransactionSerializer
     authentication_classes = (BasicAuthentication,)
     permission_classes = (IsAuthenticated,)
-    
+
     def get_serializer(self,*args,**kwargs):
         if self.serializer_class:
             return self.serializer_class(context={'request':self.request},*args,**kwargs)
@@ -241,5 +244,5 @@ class TransactionListView(generics.ListAPIView):
 
             serializer = self.get_serializer(queryset,many=True)
             return Response(serializer.data)
-        
+
         return Response(status=status.HTTP_404_NOT_FOUND)
