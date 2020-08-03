@@ -16,6 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path,include
 from rest_framework_jwt import views
+from search import views as search_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -23,6 +24,7 @@ urlpatterns = [
     path('',include('athentication.user_urls')),
     path('analytics/',include('analytics.urls')),
     path('account/',include('account.urls') ),
+    path('search/', search_views.SearchAPIView.as_view(),name='search' ),
 
 
 ]
