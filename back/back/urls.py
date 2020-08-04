@@ -17,11 +17,11 @@ from django.contrib import admin
 from django.urls import path,include
 from rest_framework_jwt import views
 from search import views as search_views
+from djoser import urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/',include('athentication.urls')),
-    path('',include('athentication.user_urls')),
     path('analytics/',include('analytics.urls')),
     path('account/',include('account.urls') ),
     path('search/', search_views.SearchAPIView.as_view(),name='search' ),
