@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from rest_framework.authentication import BasicAuthentication
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
 from account import models as account_models
 from django.core import exceptions as django_exceptions
@@ -12,7 +12,7 @@ from account.account_views import URLQueryParamsMixin
 
 class AccountViewSet(viewsets.ViewSet,URLQueryParamsMixin):
     lookup_field = 'name'
-    authentication_classes = (BasicAuthentication,)
+    authentication_classes = (TokenAuthentication,)
     serializer_class = serializer.AccountInfoSerializer
 
     def get_queryset(self):
@@ -53,7 +53,7 @@ class AccountViewSet(viewsets.ViewSet,URLQueryParamsMixin):
 class TagInfoViewSet(viewsets.ViewSet):
     lookup_field = 'name'
     serializer_class = serializer.TagInfoSerializer
-    authentication_classes = [BasicAuthentication,]
+    authentication_classes = [TokenAuthentication,]
 
     def get_queryset(self):
         return self.request.user.tag_set.all()
@@ -96,7 +96,7 @@ class TagInfoViewSet(viewsets.ViewSet):
 class CategoryInfoViewSet(viewsets.ViewSet):
     lookup_field = 'name'
     serializer_class = serializer.CategroryInfoSerializer
-    authentication_classes = [BasicAuthentication,]
+    authentication_classes = [TokenAuthentication,]
 
     def get_queryset(self):
         return self.request.user.category_set.all()

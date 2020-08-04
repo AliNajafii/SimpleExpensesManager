@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import BasicAuthentication
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.pagination import PageNumberPagination,LimitOffsetPagination
 from rest_framework import exceptions as rest_exceptions
 from django.contrib.auth import get_user_model
@@ -44,7 +44,7 @@ class AccountCreateView(generics.CreateAPIView):
     serializer_class = serialization.AccountSerializer
     model = models.Account
     permission_classes = (IsAuthenticated,)
-    authentication_classes = (BasicAuthentication,)
+    authentication_classes = (TokenAuthentication,)
 
     def get_queryset(self):
         return self.request.user.account_set.all()
@@ -68,7 +68,7 @@ class AccountCreateView(generics.CreateAPIView):
 
 class AccountProfileView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAuthenticated,)
-    authentication_classes = (BasicAuthentication,)
+    authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
     USER = get_user_model()
 
@@ -124,7 +124,7 @@ class AccountProfileView(generics.RetrieveUpdateDestroyAPIView):
 
 class UserAccountListView(generics.ListAPIView):
     serializer_class = serialization.AccountSerializer
-    authentication_classes = (BasicAuthentication,)
+    authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
     pagination_class = DefaultPagination
 
@@ -154,7 +154,7 @@ class UserAccountListView(generics.ListAPIView):
 
 class TransactionCreateView(generics.CreateAPIView):
     serializer_class = serialization.TransactionSerializer
-    authentication_classes = (BasicAuthentication,)
+    authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
     model = models.Transaction
 
@@ -192,7 +192,7 @@ class TransactionCreateView(generics.CreateAPIView):
 
 class TransactionDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = serialization.TransactionSerializer
-    authentication_classes = (BasicAuthentication,)
+    authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get_serializer(self,*args,**kwargs):
@@ -221,9 +221,9 @@ class TransactionDetailView(generics.RetrieveUpdateDestroyAPIView):
 class TransactionListView(generics.ListAPIView):
 
     permission_classes = (IsAuthenticated,)
-    authentication_classes = (BasicAuthentication,)
+    authentication_classes = (TokenAuthentication,)
     serializer_class = serialization.TransactionSerializer
-    pagination_class = LimitOffsetPagination
+    pagination_class = DefaultPagination
     order_by = '-date'
 
     def get_queryset(self,*args,**kwargs):
