@@ -11,11 +11,7 @@ class FilterSerializer(serializers.Serializer):
         fields = ['all','tags','transactions','categories']
 
     def validate(self,attrs):
-        all = attrs.get('all')
-        tags = attrs.get('tags')
-        cats = attrs.get('categories')
-        trans = attrs.get('transactions')
-
+        
         check_items = [int(i) for i in attrs.values()]
 
         if sum(check_items) != 1 :
