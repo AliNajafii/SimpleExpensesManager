@@ -7,6 +7,8 @@ from account import serialization
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from django.core import exceptions as django_exceptions
+from djoser.views import TokenDestroyView
+from rest_framework.authentication import TokenAuthentication
 
 class LoginView(APIView):
     pass
@@ -40,3 +42,6 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
                 return Response(seri.data,status=status.HTTP_200_OK)
             return Response(seri.errors,status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+class TokenLogout(TokenDestroyView):
+    authentication_classes = [TokenAuthentication]
