@@ -49,6 +49,7 @@ JWT_AUTH = {
 
 INSTALLED_APPS = [
     'rest_framework',
+    'rest_framework.authtoken',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -60,6 +61,7 @@ INSTALLED_APPS = [
     'athentication',
     'analytics',
     'django_restql',
+    'djoser',
 ]
 
 MIDDLEWARE = [
